@@ -101,6 +101,7 @@ fun LecturerMarkEntryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .imePadding()
         ) {
             // Header Info
             Card(

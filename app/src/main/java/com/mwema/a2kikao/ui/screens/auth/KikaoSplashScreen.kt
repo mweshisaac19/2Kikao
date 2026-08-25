@@ -9,17 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -93,6 +84,8 @@ fun KikaoSplashScreen(
                     )
                 )
             )
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = 28.dp, vertical = 34.dp)
     ) {
         Row(
@@ -117,7 +110,7 @@ fun KikaoSplashScreen(
 
                 Text(
                     text = "SECURE SESSION",
-                    color = Color.White.copy(alpha = 0.78f),
+                    color = Color.White.copy(alpha = 0.90f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -200,7 +193,10 @@ fun KikaoSplashScreen(
                 color = Color.White,
                 fontSize = 72.sp,
                 fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-4).sp
+                letterSpacing = (-4).sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = (logoPulse - 0.96f) * 10f + 0.5f
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -231,7 +227,7 @@ fun KikaoSplashScreen(
 
                 Text(
                     text = "Attendance · insight · action",
-                    color = Color.White.copy(alpha = 0.75f),
+                    color = Color.White.copy(alpha = 0.90f),
                     fontSize = 12.sp
                 )
             }

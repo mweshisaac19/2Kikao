@@ -4,17 +4,7 @@ package com.mwema.a2kikao.ui.screens.student
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FabPosition
@@ -66,42 +56,50 @@ fun KikaoStudentScaffold(
     onTabSelected: (StudentTab) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
-    Scaffold(
-        modifier = modifier,
-        containerColor = KikaoColors.Background,
-        topBar = {
-            KikaoStudentHeader(
-                title = screenTitle,
-                subtitle = screenSubtitle,
-                studentName = studentName,
-                onBackClick = onBackClick,
-                onNotificationClick = onNotificationClick
-            )
-        },
-        bottomBar = {
-            if (showBottomBar) {
-                KikaoStudentBottomBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = onTabSelected
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        KikaoColors.DeepIndigo,
+                        KikaoColors.Indigo,
+                        Color(0xFF31539A)
+                    )
                 )
-            }
-        },
-        floatingActionButton = {
-            if (showScanButton) {
-                KikaoScanButton(onClick = onScanClick)
-            }
-        },
-        floatingActionButtonPosition = FabPosition.Center
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(KikaoColors.Background)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawKikaoBackground()
-            }
+            )
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawKikaoBackground()
+        }
 
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            topBar = {
+                KikaoStudentHeader(
+                    title = screenTitle,
+                    subtitle = screenSubtitle,
+                    studentName = studentName,
+                    onBackClick = onBackClick,
+                    onNotificationClick = onNotificationClick
+                )
+            },
+            bottomBar = {
+                if (showBottomBar) {
+                    KikaoStudentBottomBar(
+                        selectedTab = selectedTab,
+                        onTabSelected = onTabSelected
+                    )
+                }
+            },
+            floatingActionButton = {
+                if (showScanButton) {
+                    KikaoScanButton(onClick = onScanClick)
+                }
+            },
+            floatingActionButtonPosition = FabPosition.Center
+        ) { innerPadding ->
             content(innerPadding)
         }
     }
@@ -118,15 +116,8 @@ private fun KikaoStudentHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        KikaoColors.DeepIndigo,
-                        KikaoColors.Indigo,
-                        Color(0xFF31539A)
-                    )
-                )
-            )
+            .background(Color.Transparent)
+            .statusBarsPadding()
             .padding(horizontal = 22.dp, vertical = 18.dp)
     ) {
         Canvas(modifier = Modifier.matchParentSize()) {
@@ -175,7 +166,7 @@ private fun KikaoStudentHeader(
 
                         Text(
                             text = "STUDENT PORTAL",
-                            color = KikaoColors.White.copy(alpha = 0.70f),
+                            color = KikaoColors.White.copy(alpha = 0.85f),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -229,7 +220,7 @@ private fun KikaoStudentHeader(
 
             Text(
                 text = subtitle,
-                color = KikaoColors.White.copy(alpha = 0.76f),
+                color = KikaoColors.White.copy(alpha = 0.95f),
                 fontSize = 12.sp
             )
 
@@ -250,8 +241,9 @@ private fun KikaoStudentBottomBar(
     onTabSelected: (StudentTab) -> Unit
 ) {
     NavigationBar(
-        containerColor = KikaoColors.White,
-        tonalElevation = 6.dp
+        containerColor = Color.White.copy(alpha = 0.08f),
+        tonalElevation = 0.dp,
+        modifier = Modifier.navigationBarsPadding()
     ) {
         StudentTab.entries.forEach { tab ->
             NavigationBarItem(
@@ -272,11 +264,11 @@ private fun KikaoStudentBottomBar(
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = KikaoColors.Teal,
-                    selectedTextColor = KikaoColors.Teal,
-                    indicatorColor = KikaoColors.TealLight,
-                    unselectedIconColor = KikaoColors.MutedText,
-                    unselectedTextColor = KikaoColors.MutedText
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.White,
+                    indicatorColor = KikaoColors.Teal,
+                    unselectedIconColor = Color.White.copy(alpha = 0.5f),
+                    unselectedTextColor = Color.White.copy(alpha = 0.5f)
                 )
             )
         }
@@ -306,15 +298,15 @@ private fun KikaoScanButton(
 
 private fun DrawScope.drawKikaoBackground() {
     drawCircle(
-        color = KikaoColors.Teal.copy(alpha = 0.07f),
-        radius = size.width * 0.48f,
-        center = Offset(size.width * 1.08f, size.height * 0.30f)
+        color = KikaoColors.Teal.copy(alpha = 0.22f),
+        radius = size.width * 0.55f,
+        center = Offset(size.width * 1.05f, size.height * 0.12f)
     )
 
     drawCircle(
-        color = KikaoColors.Gold.copy(alpha = 0.06f),
-        radius = size.width * 0.45f,
-        center = Offset(size.width * -0.15f, size.height * 0.82f)
+        color = KikaoColors.Gold.copy(alpha = 0.14f),
+        radius = size.width * 0.48f,
+        center = Offset(size.width * -0.12f, size.height * 0.90f)
     )
 }
 

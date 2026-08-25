@@ -19,5 +19,8 @@ data class UserProfile(
     val classesTaught: String? = null,
     val roleTitle: String? = null,
     val administrativeUnit: String? = null,
-    val officePhone: String? = null
+    val officePhone: String? = null,
+    val profilePictureUrl: String? = null,
+    val overallAttendance: Int? = null,
+    val academicAverage: Int? = null
 )

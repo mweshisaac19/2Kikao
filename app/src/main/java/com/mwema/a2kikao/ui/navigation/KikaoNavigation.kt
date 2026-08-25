@@ -47,10 +47,15 @@ sealed interface Screen {
     ) : Screen
 
     @Serializable
-    data object SelfieVerification : Screen
+    data class SelfieVerification(val sessionId: String, val isRequired: Boolean = true) : Screen
 
     @Serializable
-    data object VerificationConfirmed : Screen
+    data class VerificationConfirmed(
+        val sessionId: String,
+        val className: String,
+        val classCode: String,
+        val roomName: String
+    ) : Screen
 
     @Serializable
     data class VerificationFailed(val reason: String) : Screen
@@ -163,7 +168,10 @@ sealed interface Screen {
     data object LecturerEditProfile : Screen
 
     @Serializable
-    data object LecturerCreateSession : Screen
+    data class LecturerCreateSession(val initialCourseCode: String? = null) : Screen
+
+    @Serializable
+    data class LecturerAddClass(val classId: String? = null) : Screen
 
     // --- ADMIN SCREENS ---
     @Serializable

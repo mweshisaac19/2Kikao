@@ -76,7 +76,7 @@ fun AdminManagementFormsScreen(
         onTabSelected = onTabSelected
     ) { innerPadding ->
 
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).imePadding()) {
             
             // Sub-navigation breadcrumb / back action
             if (activeForm != ManagementForm.NONE) {
@@ -84,14 +84,14 @@ fun AdminManagementFormsScreen(
                     onClick = { activeForm = ManagementForm.NONE },
                     modifier = Modifier.padding(start = 12.dp, top = 8.dp)
                 ) {
-                    Text("‹ Back to workspace", color = KikaoColors.Teal, fontWeight = FontWeight.Bold)
+                    Text("‹ Back to workspace", color = KikaoColors.TealLight, fontWeight = FontWeight.Bold)
                 }
             } else {
                 TextButton(
                     onClick = onBackClick,
                     modifier = Modifier.padding(start = 12.dp, top = 8.dp)
                 ) {
-                    Text("‹ Back to dashboard", color = KikaoColors.Teal, fontWeight = FontWeight.Bold)
+                    Text("‹ Back to dashboard", color = KikaoColors.TealLight, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -160,7 +160,7 @@ private fun ManagementFormsHome(
 
         Text(
             text = "QUICK ACTIONS",
-            color = KikaoColors.MutedText,
+            color = Color.White.copy(alpha = 0.90f),
             fontSize = 10.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 0.9.sp

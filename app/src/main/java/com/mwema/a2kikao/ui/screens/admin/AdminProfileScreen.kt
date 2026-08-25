@@ -125,7 +125,7 @@ fun AdminProfileScreen(
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-            Text(text = "Kikao Admin v1.2.0", color = KikaoColors.MutedText, fontSize = 10.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text(text = "Kikao Admin v1.2.0", color = Color.White.copy(alpha = 0.85f), fontSize = 10.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -686,7 +686,7 @@ private fun SectionLabel(
 ) {
     Text(
         text = text.uppercase(),
-        color = KikaoColors.MutedText,
+        color = Color.White.copy(alpha = 0.90f),
         fontSize = 10.sp,
         fontWeight = FontWeight.ExtraBold,
         letterSpacing = 0.8.sp

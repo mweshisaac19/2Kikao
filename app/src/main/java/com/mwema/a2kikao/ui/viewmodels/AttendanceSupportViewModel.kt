@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.mwema.a2kikao.data.FirebaseManager
 import com.mwema.a2kikao.ui.screens.student.AttendanceRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,8 +26,10 @@ class AttendanceSupportViewModel : ViewModel() {
         viewModelScope.launch {
             _isSubmitting.value = true
             try {
+                val profile = FirebaseManager.getUserProfile(uid)
                 val data = mapOf(
-                    "uid" to uid,
+                    "studentId" to uid,
+                    "studentName" to (profile?.fullName ?: "Student"),
                     "type" to request.type.name,
                     "reason" to request.reason,
                     "details" to request.details,
@@ -34,6 +37,7 @@ class AttendanceSupportViewModel : ViewModel() {
                     "endDate" to request.endDate,
                     "affectedSessionDate" to request.affectedSessionDate,
                     "classId" to request.classId,
+                    "status" to "PENDING",
                     "submittedAt" to System.currentTimeMillis()
                 )
                 firestore.collection("attendance_requests").add(data).await()

@@ -1,6 +1,5 @@
 package com.mwema.a2kikao.ui.screens.student
 
-
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -14,36 +13,15 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -54,11 +32,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mwema.a2kikao.ui.theme.KikaoColors
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.mwema.a2kikao.ui.theme.KikaoColors
 import kotlinx.coroutines.delay
 import java.io.File
+import java.util.concurrent.Executors
 
 private enum class SelfieState {
     READY,
@@ -149,6 +128,8 @@ fun SelfieVerificationScreen(
 
         selfieState = SelfieState.VERIFYING
 
+        // Here we would typically upload the selfie and verify it against 
+        // the user's reference image stored in the database (e.g., Cloudinary URL).
         val isApproved = try {
             onVerifySelfie(selfie)
         } catch (_: Exception) {
@@ -160,7 +141,7 @@ fun SelfieVerificationScreen(
             delay(900)
             onVerificationComplete(true)
         } else {
-            errorMessage = "We could not confirm your identity. Please retake your selfie."
+            errorMessage = "Identity mismatch. Please ensure you are the account owner."
             selfieState = SelfieState.ERROR
         }
     }
@@ -226,6 +207,8 @@ private fun SelfieVerificationLayout(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -241,8 +224,8 @@ private fun SelfieVerificationLayout(
             Text(
                 text = when (selfieState) {
                     SelfieState.CONFIRMED -> "Identity confirmed"
-                    SelfieState.VERIFYING -> "Confirming your identity"
-                    else -> "Quick identity check"
+                    SelfieState.VERIFYING -> "Confirming identity"
+                    else -> "Secure identity check"
                 },
                 color = Color.White,
                 fontSize = 27.sp,
@@ -256,13 +239,13 @@ private fun SelfieVerificationLayout(
                     SelfieState.CAMERA, SelfieState.CAPTURING ->
                         "Position your face inside the guide."
                     SelfieState.VERIFYING ->
-                        "Matching your selfie with your verified student profile."
+                        "Checking your selfie against secure institutional records."
                     SelfieState.CONFIRMED ->
                         "Your attendance has been securely verified."
                     else ->
-                        "You were randomly selected for a quick selfie verification."
+                        "You were randomly selected for a quick identity check."
                 },
-                color = Color.White.copy(alpha = 0.78f),
+                color = Color.White.copy(alpha = 0.95f),
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 textAlign = TextAlign.Center
@@ -281,14 +264,14 @@ private fun SelfieVerificationLayout(
             when (selfieState) {
                 SelfieState.READY -> {
                     StatusPanel(
-                        title = "Random verification selected",
-                        description = "This protects students and prevents proxy attendance."
+                        title = "Verification required",
+                        description = "Take a live selfie to match with your verified profile."
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     SelfieActionButton(
-                        label = "Start identity check",
+                        label = "Start camera",
                         onClick = onStartCamera
                     )
                 }
@@ -296,7 +279,7 @@ private fun SelfieVerificationLayout(
                 SelfieState.CAMERA -> {
                     Text(
                         text = "Keep your face well lit and centred.",
-                        color = Color.White.copy(alpha = 0.75f),
+                        color = Color.White.copy(alpha = 0.90f),
                         fontSize = 13.sp
                     )
 
@@ -318,9 +301,9 @@ private fun SelfieVerificationLayout(
 
                     Text(
                         text = if (selfieState == SelfieState.CAPTURING) {
-                            "Capturing your selfie..."
+                            "Capturing..."
                         } else {
-                            "Verifying your identity..."
+                            "Verifying identity..."
                         },
                         color = Color.White,
                         fontSize = 14.sp,
@@ -331,13 +314,13 @@ private fun SelfieVerificationLayout(
                 SelfieState.CONFIRMED -> {
                     StatusPanel(
                         title = "Identity verified",
-                        description = "Attendance confirmation is being completed."
+                        description = "Your presence has been officially recorded."
                     )
                 }
 
                 SelfieState.ERROR -> {
                     StatusPanel(
-                        title = "Verification needed",
+                        title = "Identity mismatch",
                         description = errorMessage,
                         isError = true
                     )
@@ -346,15 +329,16 @@ private fun SelfieVerificationLayout(
 
                     SelfieActionButton(
                         label = "Try again",
-                        onClick = onTryAgain
+                        onClick = onStartCamera
                     )
                 }
+                else -> {}
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "Your selfie is used only to verify this attendance session.",
+                text = "Live verification prevents proxy attendance.",
                 color = Color.White.copy(alpha = 0.65f),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center
@@ -399,7 +383,7 @@ private fun SelfieTopBar(
 
             Text(
                 text = "IDENTITY CHECK",
-                color = Color.White.copy(alpha = 0.68f),
+                color = Color.White.copy(alpha = 0.90f),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
@@ -433,12 +417,6 @@ private fun FaceGuide(
                 color = guideColor,
                 radius = size.width * 0.34f,
                 style = Stroke(width = 3.dp.toPx())
-            )
-
-            drawCircle(
-                color = guideColor.copy(alpha = 0.35f),
-                radius = size.width * 0.42f,
-                style = Stroke(width = 1.dp.toPx())
             )
         }
 
@@ -543,7 +521,7 @@ private fun NoSelfieRequiredContent() {
     Spacer(modifier = Modifier.height(28.dp))
 
     Text(
-        text = "No additional check today",
+        text = "Identity confirmed",
         color = Color.White,
         fontSize = 26.sp,
         fontWeight = FontWeight.Bold,
@@ -553,8 +531,8 @@ private fun NoSelfieRequiredContent() {
     Spacer(modifier = Modifier.height(10.dp))
 
     Text(
-        text = "Your QR and location checks are complete. Finishing attendance verification...",
-        color = Color.White.copy(alpha = 0.78f),
+        text = "Your verification profile is up to date. Completing check-in...",
+        color = Color.White.copy(alpha = 0.95f),
         fontSize = 14.sp,
         lineHeight = 20.sp,
         textAlign = TextAlign.Center

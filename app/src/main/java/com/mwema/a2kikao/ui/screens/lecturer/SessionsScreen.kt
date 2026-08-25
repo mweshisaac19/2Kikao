@@ -1,5 +1,7 @@
 package com.mwema.a2kikao.ui.screens.lecturer
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +26,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mwema.a2kikao.ui.theme.KikaoColors
+import com.mwema.a2kikao.ui.viewmodels.LecturerSessionsViewModel
+import com.mwema.a2kikao.ui.viewmodels.LecturerSessionData
+import kotlinx.coroutines.delay
 
 // ------------------------------------------------------------
 // DATA MODELS
@@ -62,6 +68,7 @@ private enum class SessionsFilter {
 @Composable
 fun SessionsScreen(
     modifier: Modifier = Modifier,
+    viewModel: LecturerSessionsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNotificationClick: () -> Unit = {},
     onSessionClick: (String) -> Unit = {},
     onCreateSession: () -> Unit = {},
@@ -69,11 +76,36 @@ fun SessionsScreen(
     onTabSelected: (LecturerTab) -> Unit = {}
 ) {
     var selectedFilter by remember { mutableStateOf(SessionsFilter.ALL) }
-    val sessions = remember { demoSessions() }
+    val realSessions by viewModel.sessions.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    val sessions = if (realSessions.isNotEmpty()) {
+        realSessions.map { data ->
+            LecturerSession(
+                id = data.id,
+                courseCode = data.courseCode,
+                courseName = data.courseName,
+                topic = data.topic,
+                dateLabel = data.dateLabel,
+                time = data.time,
+                duration = data.duration,
+                room = data.room,
+                studentCount = data.studentCount,
+                attendanceCount = data.attendanceCount,
+                status = when (data.status) {
+                    "LIVE" -> SessionStatus.LIVE
+                    "UPCOMING" -> SessionStatus.UPCOMING
+                    else -> SessionStatus.COMPLETED
+                }
+            )
+        }
+    } else {
+        demoSessions()
+    }
     
     val filteredSessions = when (selectedFilter) {
         SessionsFilter.ALL -> sessions
-        SessionsFilter.TODAY -> sessions.filter { it.dateLabel == "Today" }
+        SessionsFilter.TODAY -> sessions.filter { it.dateLabel == "Today" || it.status == SessionStatus.LIVE }
         SessionsFilter.UPCOMING -> sessions.filter { it.status == SessionStatus.UPCOMING }
         SessionsFilter.RECENT -> sessions.filter { it.status == SessionStatus.COMPLETED }
     }
@@ -111,7 +143,6 @@ fun SessionsScreen(
                 
                 Spacer(modifier = Modifier.height(20.dp))
                 
-                // Sessions list
                 Text(
                     text = when (selectedFilter) {
                         SessionsFilter.ALL -> "All sessions"
@@ -119,7 +150,7 @@ fun SessionsScreen(
                         SessionsFilter.UPCOMING -> "Upcoming classes"
                         SessionsFilter.RECENT -> "Recent sessions"
                     },
-                    color = KikaoColors.Ink,
+                    color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 20.dp)
@@ -127,14 +158,29 @@ fun SessionsScreen(
                 
                 Spacer(modifier = Modifier.height(14.dp))
                 
-                if (filteredSessions.isEmpty()) {
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = KikaoColors.Teal)
+                    }
+                } else if (filteredSessions.isEmpty()) {
                     EmptySessionsState()
                 } else {
-                    filteredSessions.forEach { session ->
-                        SessionCard(
-                            session = session,
-                            onClick = { onSessionClick(session.id) }
-                        )
+                    filteredSessions.forEachIndexed { index, session ->
+                        var visible by remember { mutableStateOf(false) }
+                        LaunchedEffect(Unit) {
+                            delay(index * 100L)
+                            visible = true
+                        }
+
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = slideInHorizontally { -it } + fadeIn()
+                        ) {
+                            SessionCard(
+                                session = session,
+                                onClick = { onSessionClick(session.id) }
+                            )
+                        }
                         Spacer(modifier = Modifier.height(14.dp))
                     }
                 }

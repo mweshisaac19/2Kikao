@@ -3,24 +3,18 @@ package com.mwema.a2kikao.ui.screens.student
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -33,15 +27,27 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mwema.a2kikao.ui.theme.KikaoColors
+import com.mwema.a2kikao.ui.viewmodels.AttendanceConfirmationViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun VerificationConfirmedScreen(
+    sessionId: String,
     modifier: Modifier = Modifier,
+    viewModel: AttendanceConfirmationViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     className: String = "Database Systems",
     classCode: String = "CSC 221",
     roomName: String = "Lab 3",
     onFinish: () -> Unit = {}
 ) {
+    val isRecording by viewModel.isRecording.collectAsState()
+    val recordSuccess by viewModel.recordSuccess.collectAsState()
+
+    LaunchedEffect(sessionId) {
+        viewModel.confirmAttendance(sessionId)
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -72,6 +78,9 @@ fun VerificationConfirmedScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 38.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -90,7 +99,7 @@ fun VerificationConfirmedScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             Text(
-                text = "Attendance confirmed",
+                text = if (recordSuccess) "Attendance confirmed" else if (isRecording) "Recording attendance..." else "Finalizing...",
                 color = Color.White,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
@@ -100,7 +109,7 @@ fun VerificationConfirmedScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "You are securely checked in for this class.",
+                text = if (recordSuccess) "You are securely checked in for this class." else "Please wait while we secure your spot.",
                 color = Color.White.copy(alpha = 0.78f),
                 fontSize = 15.sp,
                 textAlign = TextAlign.Center
@@ -282,6 +291,6 @@ private fun ReceiptDetail(
 @Composable
 private fun VerificationConfirmedScreenPreview() {
     MaterialTheme {
-        VerificationConfirmedScreen()
+        VerificationConfirmedScreen(sessionId = "demo")
     }
 }

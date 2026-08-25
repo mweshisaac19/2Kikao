@@ -1,19 +1,9 @@
 package com.mwema.a2kikao.ui.screens.admin
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -23,7 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -61,48 +54,66 @@ fun KikaoAdminScaffold(
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = KikaoColors.Background
+        color = Color.Transparent
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            // ------------------------------------------------
-            // HEADER
-            // ------------------------------------------------
-
-            AdminHeader(
-                screenTitle = screenTitle,
-                screenSubtitle = screenSubtitle,
-                adminName = adminName,
-                onNotificationClick = onNotificationClick,
-                onProfileClick = onProfileClick
-            )
-
-            // ------------------------------------------------
-            // CONTENT
-            // ------------------------------------------------
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                content(
-                    androidx.compose.foundation.layout.PaddingValues(
-                        bottom = 12.dp
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            KikaoColors.DeepIndigo,
+                            KikaoColors.Indigo,
+                            Color(0xFF31539A)
+                        )
                     )
                 )
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawKikaoBackground()
             }
 
-            // ------------------------------------------------
-            // BOTTOM NAVIGATION
-            // ------------------------------------------------
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
 
-            AdminBottomNavigation(
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected
-            )
+                // ------------------------------------------------
+                // HEADER
+                // ------------------------------------------------
+
+                AdminHeader(
+                    screenTitle = screenTitle,
+                    screenSubtitle = screenSubtitle,
+                    adminName = adminName,
+                    onNotificationClick = onNotificationClick,
+                    onProfileClick = onProfileClick
+                )
+
+                // ------------------------------------------------
+                // CONTENT
+                // ------------------------------------------------
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    content(
+                        androidx.compose.foundation.layout.PaddingValues(
+                            bottom = 12.dp
+                        )
+                    )
+                }
+
+                // ------------------------------------------------
+                // BOTTOM NAVIGATION
+                // ------------------------------------------------
+
+                AdminBottomNavigation(
+                    selectedTab = selectedTab,
+                    onTabSelected = onTabSelected
+                )
+            }
         }
     }
 }
@@ -122,7 +133,8 @@ private fun AdminHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(KikaoColors.Indigo)
+            .background(Color.Transparent)
+            .statusBarsPadding()
     ) {
         Column(
             modifier = Modifier
@@ -170,7 +182,7 @@ private fun AdminHeader(
 
                     Text(
                         text = screenSubtitle,
-                        color = Color.White.copy(alpha = 0.68f),
+                        color = Color.White.copy(alpha = 0.90f),
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -264,7 +276,7 @@ private fun AdminHeader(
 
                 Text(
                     text = "Institution systems operational",
-                    color = Color.White.copy(alpha = 0.78f),
+                    color = Color.White.copy(alpha = 0.90f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
@@ -295,8 +307,8 @@ private fun AdminBottomNavigation(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars),
-        color = Color.White,
-        shadowElevation = 12.dp
+        color = Color.White.copy(alpha = 0.08f),
+        shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
@@ -391,7 +403,7 @@ private fun AdminNavItem(
                 .clip(RoundedCornerShape(11.dp))
                 .background(
                     if (selected) {
-                        KikaoColors.Indigo
+                        KikaoColors.Teal
                     } else {
                         Color.Transparent
                     }
@@ -403,7 +415,7 @@ private fun AdminNavItem(
                 color = if (selected) {
                     Color.White
                 } else {
-                    KikaoColors.MutedText
+                    Color.White.copy(alpha = 0.5f)
                 },
                 fontSize = 17.sp,
                 fontWeight = if (selected) {
@@ -419,9 +431,9 @@ private fun AdminNavItem(
         Text(
             text = label,
             color = if (selected) {
-                KikaoColors.Indigo
+                KikaoColors.Teal
             } else {
-                KikaoColors.MutedText
+                Color.White.copy(alpha = 0.5f)
             },
             fontSize = 10.sp,
             fontWeight = if (selected) {
@@ -445,6 +457,20 @@ private fun AdminNavItem(
             )
         }
     }
+}
+
+private fun DrawScope.drawKikaoBackground() {
+    drawCircle(
+        color = KikaoColors.Teal.copy(alpha = 0.22f),
+        radius = size.width * 0.55f,
+        center = Offset(size.width * 1.05f, size.height * 0.12f)
+    )
+
+    drawCircle(
+        color = KikaoColors.Gold.copy(alpha = 0.14f),
+        radius = size.width * 0.48f,
+        center = Offset(size.width * -0.12f, size.height * 0.90f)
+    )
 }
 
 // ------------------------------------------------------------

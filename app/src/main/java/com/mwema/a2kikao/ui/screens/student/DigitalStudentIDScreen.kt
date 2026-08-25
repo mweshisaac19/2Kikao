@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -40,6 +42,8 @@ fun DigitalStudentIDScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -71,7 +75,7 @@ private fun IDCard(name: String, regNo: String) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text(regNo, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                    Text(regNo, color = Color.White.copy(alpha = 0.90f), fontSize = 12.sp)
                 }
             }
             Spacer(modifier = Modifier.weight(1f))

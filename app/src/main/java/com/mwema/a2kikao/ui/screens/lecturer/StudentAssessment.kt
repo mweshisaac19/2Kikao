@@ -9,7 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,7 +22,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mwema.a2kikao.data.FirebaseManager
 import com.mwema.a2kikao.ui.theme.KikaoColors
+import com.mwema.a2kikao.ui.viewmodels.LecturerStudentDetailViewModel
 import kotlin.math.roundToInt
 
 // ------------------------------------------------------------
@@ -67,11 +70,22 @@ data class StudentAcademicProfile(
 fun StudentAssessmentScreen(
     studentId: String,
     modifier: Modifier = Modifier,
+    viewModel: LecturerStudentDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onTabSelected: (LecturerTab) -> Unit = {}
 ) {
-    val student = demoStudentProfile(studentId)
+    val studentProfile by viewModel.studentProfile.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    LaunchedEffect(studentId) {
+        val lecturerId = FirebaseManager.currentUserUId
+        if (lecturerId != null) {
+            viewModel.fetchStudentDetail(studentId, lecturerId)
+        }
+    }
+
+    val student = studentProfile ?: demoStudentProfile(studentId)
 
     KikaoLecturerScaffold(
         modifier = modifier,
@@ -81,80 +95,93 @@ fun StudentAssessmentScreen(
         onNotificationClick = onNotificationClick,
         onTabSelected = onTabSelected
     ) { innerPadding ->
-        
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 20.dp)
-                .padding(bottom = 40.dp)
-        ) {
-            
-            // Header Action
-            TextButton(
-                onClick = onBack,
-                modifier = Modifier.padding(bottom = 12.dp)
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = KikaoColors.Teal)
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                    .padding(bottom = 40.dp)
             ) {
-                Text("‹ Back to student list", color = KikaoColors.Teal, fontWeight = FontWeight.Bold)
-            }
-            
-            // Profile Card
-            StudentHeroCard(student)
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Overall Stats
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                StatMetricCard(
-                    label = "Average",
-                    value = "${student.overallAverage}%",
-                    modifier = Modifier.weight(1f),
-                    accent = KikaoColors.Indigo
+                
+                // Header Action
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    Text("‹ Back to student list", color = KikaoColors.Teal, fontWeight = FontWeight.Bold)
+                }
+                
+                // Profile Card
+                StudentHeroCard(student)
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Overall Stats
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatMetricCard(
+                        label = "Average",
+                        value = "${student.overallAverage}%",
+                        modifier = Modifier.weight(1f),
+                        accent = KikaoColors.Indigo
+                    )
+                    StatMetricCard(
+                        label = "Courses",
+                        value = student.rankedCourses.toString(),
+                        modifier = Modifier.weight(1f),
+                        accent = KikaoColors.Teal
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(28.dp))
+                
+                // Performance by Course
+                Text(
+                    text = "Course performance",
+                    color = KikaoColors.Ink,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
                 )
-                StatMetricCard(
-                    label = "Courses",
-                    value = student.rankedCourses.toString(),
-                    modifier = Modifier.weight(1f),
-                    accent = KikaoColors.Teal
+                
+                Spacer(modifier = Modifier.height(14.dp))
+                
+                if (student.coursePerformance.isEmpty()) {
+                    Text("No course data available.", color = KikaoColors.MutedText, fontSize = 14.sp)
+                } else {
+                    student.coursePerformance.forEach { course ->
+                        CoursePerformanceRow(course)
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(28.dp))
+                
+                // Recent Assessments
+                Text(
+                    text = "Recent assessment results",
+                    color = KikaoColors.Ink,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
                 )
-            }
-            
-            Spacer(modifier = Modifier.height(28.dp))
-            
-            // Performance by Course
-            Text(
-                text = "Course performance",
-                color = KikaoColors.Ink,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(14.dp))
-            
-            student.coursePerformance.forEach { course ->
-                CoursePerformanceRow(course)
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-            
-            Spacer(modifier = Modifier.height(28.dp))
-            
-            // Recent Assessments
-            Text(
-                text = "Recent assessment results",
-                color = KikaoColors.Ink,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(14.dp))
-            
-            student.assessments.forEach { result ->
-                StudentAssessmentCard(result)
-                Spacer(modifier = Modifier.height(12.dp))
+                
+                Spacer(modifier = Modifier.height(14.dp))
+                
+                if (student.assessments.isEmpty()) {
+                    Text("No assessments recorded.", color = KikaoColors.MutedText, fontSize = 14.sp)
+                } else {
+                    student.assessments.forEach { result ->
+                        StudentAssessmentCard(result)
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
             }
         }
     }
@@ -181,7 +208,7 @@ private fun StudentHeroCard(student: StudentAcademicProfile) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = student.name.split(" ").map { it.take(1) }.joinToString(""),
+                        text = student.name.split(" ").mapNotNull { it.firstOrNull()?.toString() }.joinToString("").take(2).uppercase(),
                         color = Color.White,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.ExtraBold
@@ -199,7 +226,7 @@ private fun StudentHeroCard(student: StudentAcademicProfile) {
                     )
                     Text(
                         text = student.registrationNumber,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = Color.White.copy(alpha = 0.90f),
                         fontSize = 13.sp
                     )
                     
@@ -308,7 +335,7 @@ private fun StudentAssessmentCard(result: StudentAssessmentResult) {
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            Text(text = "Score: ${result.score}/${result.total} · Posted ${result.date}", color = KikaoColors.MutedText, fontSize = 10.sp)
+            Text(text = "Score: ${result.score.toInt()}/${result.total.toInt()} · Posted ${result.date}", color = KikaoColors.MutedText, fontSize = 10.sp)
         }
     }
 }
@@ -344,15 +371,8 @@ private fun demoStudentProfile(id: String) = StudentAcademicProfile(
     photo = null,
     overallAverage = 84,
     rankedCourses = 4,
-    assessments = listOf(
-        StudentAssessmentResult("CAT 1: SQL Mastery", "CAT", 18.0, 20.0, 14.2, "16 Aug"),
-        StudentAssessmentResult("Assignment 1: ERD", "Assignment", 15.0, 20.0, 13.5, "08 Aug"),
-        StudentAssessmentResult("Quiz 1: Normalization", "Quiz", 9.0, 10.0, 7.8, "01 Aug")
-    ),
-    coursePerformance = listOf(
-        StudentCoursePerformance("CSC 221", "Database Systems", 87, 95, 4, KikaoColors.Teal),
-        StudentCoursePerformance("CSC 210", "Data Structures", 78, 88, 12, KikaoColors.Gold)
-    )
+    assessments = emptyList(),
+    coursePerformance = emptyList()
 )
 
 @Preview(showBackground = true, showSystemUi = true)

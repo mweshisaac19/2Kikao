@@ -84,13 +84,14 @@ fun LecturerNotificationPostingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 20.dp)
                 .padding(bottom = 32.dp)
         ) {
             
             TextButton(onClick = onBack) {
-                Text("‹ Cancel and go back", color = KikaoColors.MutedText)
+                Text("‹ Cancel and go back", color = Color.White.copy(alpha = 0.85f))
             }
             
             Spacer(modifier = Modifier.height(12.dp))
@@ -148,7 +149,7 @@ private fun TypeSelector(
     var expanded by remember { mutableStateOf(false) }
     
     Column {
-        Text("Notification type", fontWeight = FontWeight.Bold, color = KikaoColors.Ink, fontSize = 15.sp)
+        Text("Notification type", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp)
         Spacer(modifier = Modifier.height(8.dp))
         
         Card(
@@ -200,28 +201,38 @@ private fun NotificationForm(
     onUrgentChange: (Boolean) -> Unit
 ) {
     Column {
-        Text("Title", fontWeight = FontWeight.Bold, color = KikaoColors.Ink, fontSize = 15.sp)
+        Text("Title", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = title,
             onValueChange = onTitleChange,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("e.g. CAT 1 Results Posted") },
+            placeholder = { Text("e.g. CAT 1 Results Posted", color = Color.White.copy(alpha = 0.4f)) },
             shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KikaoColors.Teal)
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = KikaoColors.Teal,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            )
         )
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        Text("Message", fontWeight = FontWeight.Bold, color = KikaoColors.Ink, fontSize = 15.sp)
+        Text("Message", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = message,
             onValueChange = onMessageChange,
             modifier = Modifier.fillMaxWidth().height(120.dp),
-            placeholder = { Text("Detailed information for your students...") },
+            placeholder = { Text("Detailed information for your students...", color = Color.White.copy(alpha = 0.4f)) },
             shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KikaoColors.Teal)
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = KikaoColors.Teal,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White
+            )
         )
         
         Spacer(modifier = Modifier.height(20.dp))
@@ -234,8 +245,8 @@ private fun NotificationForm(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text("Mark as important", fontWeight = FontWeight.Bold, color = KikaoColors.Ink, fontSize = 14.sp)
-                Text("Will highlight this post for students", color = KikaoColors.MutedText, fontSize = 12.sp)
+                Text("Mark as important", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                Text("Will highlight this post for students", color = Color.White.copy(alpha = 0.82f), fontSize = 12.sp)
             }
         }
     }

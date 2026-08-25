@@ -1,23 +1,16 @@
 package com.mwema.a2kikao.ui.screens.lecturer
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -51,15 +44,15 @@ fun MyClassesScreen(
     modifier: Modifier = Modifier,
     viewModel: LecturerClassesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNotificationClick: () -> Unit = {},
-    onClassClick: (String) -> Unit = {},
+    onClassClick: (LecturerClass) -> Unit = {},
+    onEditClassClick: (String) -> Unit = {},
+    onAddClassClick: () -> Unit = {},
     onTabSelected: (LecturerTab) -> Unit = {}
 ) {
     val realClasses by viewModel.classes.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    var searchQuery by remember {
-        mutableStateOf("")
-    }
+    var searchQuery by remember { mutableStateOf("") }
 
     val mappedClasses = realClasses.mapIndexed { index, course ->
         LecturerClass(
@@ -67,9 +60,9 @@ fun MyClassesScreen(
             code = course.code,
             name = course.name,
             students = course.studentsEnrolled.size,
-            sessions = 12, // Simulated or fetch from sessions collection
-            attendance = 85, // Simulated
-            averagePerformance = 72, // Simulated
+            sessions = 12,
+            attendance = 85,
+            averagePerformance = 72,
             room = course.room,
             schedule = "${course.day} · ${course.time}",
             accentColor = when (index % 4) {
@@ -82,7 +75,6 @@ fun MyClassesScreen(
     }
 
     val classes = if (mappedClasses.isNotEmpty()) mappedClasses else demoLecturerClasses()
-
     val filteredClasses = classes.filter { course ->
         course.name.contains(searchQuery, ignoreCase = true) ||
                 course.code.contains(searchQuery, ignoreCase = true)
@@ -96,254 +88,96 @@ fun MyClassesScreen(
         onNotificationClick = onNotificationClick,
         onTabSelected = onTabSelected
     ) { innerPadding ->
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    horizontal = 20.dp,
-                    vertical = 20.dp
-                )
-                .padding(bottom = 35.dp)
-        ) {
-
-            ClassesOverviewHeader(
-                totalClasses = classes.size,
-                totalStudents = classes.sumOf { it.students }
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            SearchClassesBar(
-                value = searchQuery,
-                onValueChange = { searchQuery = it }
-            )
-
-            Spacer(modifier = Modifier.height(22.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                    .padding(bottom = 100.dp)
             ) {
-                Text(
-                    text = "Active classes",
-                    color = KikaoColors.Ink,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                ClassesOverviewHeader(
+                    totalClasses = classes.size,
+                    totalStudents = classes.sumOf { it.students }
                 )
 
-                Text(
-                    text = "${filteredClasses.size} courses",
-                    color = KikaoColors.Teal,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(modifier = Modifier.height(12.dp))
+                SearchClassesBar(value = searchQuery, onValueChange = { searchQuery = it })
 
-            if (filteredClasses.isEmpty()) {
-                EmptyClassesState()
-            } else {
-                filteredClasses.forEach { course ->
+                Spacer(modifier = Modifier.height(22.dp))
 
-                    LecturerClassCard(
-                        course = course,
-                        onClick = {
-                            onClassClick(course.id)
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ClassesOverviewHeader(
-    totalClasses: Int,
-    totalStudents: Int
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = KikaoColors.Indigo
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp)
-        ) {
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "TEACHING OVERVIEW",
-                        color = Color.White.copy(alpha = 0.65f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 1.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(7.dp))
-
-                    Text(
-                        text = "Your teaching portfolio",
-                        color = Color.White,
-                        fontSize = 21.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(5.dp))
-
-                    Text(
-                        text = "Everything you teach, in one place.",
-                        color = Color.White.copy(alpha = 0.72f),
-                        fontSize = 12.sp
-                    )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Active classes", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("${filteredClasses.size} courses", color = KikaoColors.TealLight, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(15.dp))
-                        .background(
-                            Color.White.copy(alpha = 0.12f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "▦",
-                        color = KikaoColors.Gold,
-                        fontSize = 25.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-
-                PortfolioMetric(
-                    value = totalClasses.toString(),
-                    label = "Classes",
-                    modifier = Modifier.weight(1f)
-                )
-
-                PortfolioMetric(
-                    value = totalStudents.toString(),
-                    label = "Students",
-                    modifier = Modifier.weight(1f)
-                )
-
-                PortfolioMetric(
-                    value = "Active",
-                    label = "Semester",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PortfolioMetric(
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.10f))
-            .padding(
-                horizontal = 12.dp,
-                vertical = 10.dp
-            )
-    ) {
-        Text(
-            text = value,
-            color = KikaoColors.Gold,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
-
-        Spacer(modifier = Modifier.height(2.dp))
-
-        Text(
-            text = label,
-            color = Color.White.copy(alpha = 0.68f),
-            fontSize = 9.sp
-        )
-    }
-}
-
-@Composable
-private fun SearchClassesBar(
-    value: String,
-    onValueChange: (String) -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .clip(RoundedCornerShape(17.dp))
-            .background(Color.White)
-            .padding(horizontal = 15.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Text(
-                text = "⌕",
-                color = KikaoColors.MutedText,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(
-                    color = KikaoColors.Ink,
-                    fontSize = 13.sp
-                ),
-                decorationBox = { innerTextField ->
-
-                    if (value.isEmpty()) {
-                        Text(
-                            text = "Search classes...",
-                            color = KikaoColors.MutedText,
-                            fontSize = 13.sp
+                if (filteredClasses.isEmpty()) {
+                    EmptyClassesState()
+                } else {
+                    filteredClasses.forEach { course ->
+                        LecturerClassCard(
+                            course = course,
+                            onClick = { onClassClick(course) },
+                            onEdit = { onEditClassClick(course.id) },
+                            onDelete = { viewModel.deleteClass(course.id) }
                         )
+                        Spacer(modifier = Modifier.height(14.dp))
                     }
-
-                    innerTextField()
                 }
-            )
+            }
+
+            FloatingActionButton(
+                onClick = onAddClassClick,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 90.dp, end = 20.dp),
+                containerColor = KikaoColors.Teal,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Class")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClassesOverviewHeader(totalClasses: Int, totalStudents: Int) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = KikaoColors.Indigo)) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text("TEACHING OVERVIEW", color = Color.White.copy(alpha = 0.85f), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(7.dp))
+            Text("Your teaching portfolio", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                PortfolioMetric(value = totalClasses.toString(), label = "Classes", modifier = Modifier.weight(1f))
+                PortfolioMetric(value = totalStudents.toString(), label = "Students", modifier = Modifier.weight(1f))
+                PortfolioMetric(value = "Active", label = "Semester", modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PortfolioMetric(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.10f)).padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Text(value, color = KikaoColors.Gold, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+        Text(label, color = Color.White.copy(alpha = 0.90f), fontSize = 9.sp)
+    }
+}
+
+@Composable
+private fun SearchClassesBar(value: String, onValueChange: (String) -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(17.dp)).background(Color.White).padding(horizontal = 15.dp), contentAlignment = Alignment.CenterStart) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("⌕", color = KikaoColors.MutedText, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(10.dp))
+            BasicTextField(value = value, onValueChange = onValueChange, modifier = Modifier.weight(1f), singleLine = true, textStyle = androidx.compose.ui.text.TextStyle(color = KikaoColors.Ink, fontSize = 13.sp), decorationBox = { innerTextField ->
+                if (value.isEmpty()) Text("Search classes...", color = KikaoColors.MutedText, fontSize = 13.sp)
+                innerTextField()
+            })
         }
     }
 }
@@ -351,364 +185,111 @@ private fun SearchClassesBar(
 @Composable
 private fun LecturerClassCard(
     course: LecturerClass,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Class?") },
+            text = { Text("Are you sure you want to remove ${course.code}? This will also delete the timetable entry for your students.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Delete", color = Color(0xFFB42318))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(23.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 3.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.10f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-
-        Column(
-            modifier = Modifier.padding(17.dp)
-        ) {
-
+        Column(modifier = Modifier.padding(17.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            course.accentColor.copy(alpha = 0.12f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = course.code.take(3),
-                        color = course.accentColor,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    )
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.Top) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(course.accentColor.copy(alpha = 0.20f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(course.code.take(3), color = course.accentColor, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                    }
+                    Spacer(modifier = Modifier.width(13.dp))
+                    Column {
+                        Text(course.code, color = course.accentColor, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(course.name, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${course.room} · ${course.schedule}", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("●", color = KikaoColors.Teal, fontSize = 8.sp)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Tap to start", color = KikaoColors.Teal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
-
-                Spacer(modifier = Modifier.width(13.dp))
-
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-
-                    Text(
-                        text = course.code,
-                        color = course.accentColor,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.7.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(3.dp))
-
-                    Text(
-                        text = course.name,
-                        color = KikaoColors.Ink,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "${course.room} · ${course.schedule}",
-                        color = KikaoColors.MutedText,
-                        fontSize = 11.sp
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            course.accentColor.copy(alpha = 0.10f)
+                
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = KikaoColors.MutedText.copy(alpha = 0.5f),
+                            modifier = Modifier.size(20.dp)
                         )
-                        .padding(
-                            horizontal = 9.dp,
-                            vertical = 7.dp
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = KikaoColors.MutedText.copy(alpha = 0.5f),
+                            modifier = Modifier.size(20.dp)
                         )
-                ) {
-                    Text(
-                        text = "›",
-                        color = course.accentColor,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(Color(0xFFEEF1F5))
-            )
-
-            Spacer(modifier = Modifier.height(15.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-
-                ClassMetric(
-                    value = course.students.toString(),
-                    label = "Students",
-                    modifier = Modifier.weight(1f)
-                )
-
-                ClassMetric(
-                    value = course.sessions.toString(),
-                    label = "Sessions",
-                    modifier = Modifier.weight(1f)
-                )
-
-                ClassMetric(
-                    value = "${course.attendance}%",
-                    label = "Attendance",
-                    modifier = Modifier.weight(1f),
-                    valueColor = attendanceColor(course.attendance)
-                )
-
-                ClassMetric(
-                    value = "${course.averagePerformance}%",
-                    label = "Average",
-                    modifier = Modifier.weight(1f),
-                    valueColor = performanceColor(course.averagePerformance)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(15.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFF5F7FA))
-                    .padding(
-                        horizontal = 13.dp,
-                        vertical = 11.dp
-                    ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                Column {
-                    Text(
-                        text = "Class performance",
-                        color = KikaoColors.MutedText,
-                        fontSize = 10.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(3.dp))
-
-                    Text(
-                        text = performanceMessage(
-                            course.averagePerformance
-                        ),
-                        color = KikaoColors.Ink,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Text(
-                    text = "View class ›",
-                    color = course.accentColor,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
             }
         }
-    }
-}
-
-@Composable
-private fun ClassMetric(
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier,
-    valueColor: Color = KikaoColors.Ink
-) {
-    Column(
-        modifier = modifier
-    ) {
-
-        Text(
-            text = value,
-            color = valueColor,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
-
-        Spacer(modifier = Modifier.height(2.dp))
-
-        Text(
-            text = label,
-            color = KikaoColors.MutedText,
-            fontSize = 9.sp
-        )
     }
 }
 
 @Composable
 private fun EmptyClassesState() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(21.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(30.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Box(
-                modifier = Modifier
-                    .size(55.dp)
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(KikaoColors.TealLight),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "⌕",
-                    color = KikaoColors.Teal,
-                    fontSize = 27.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(13.dp))
-
-            Text(
-                text = "No classes found",
-                color = KikaoColors.Ink,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text(
-                text = "Try searching with another course name or code.",
-                color = KikaoColors.MutedText,
-                fontSize = 12.sp
-            )
-        }
+    Column(modifier = Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("No classes found", color = KikaoColors.MutedText, fontWeight = FontWeight.Bold)
     }
 }
 
-private fun attendanceColor(
-    attendance: Int
-): Color {
-    return when {
-        attendance >= 85 -> KikaoColors.Teal
-        attendance >= 75 -> KikaoColors.Gold
-        else -> Color(0xFFB42318)
-    }
-}
-
-private fun performanceColor(
-    performance: Int
-): Color {
-    return when {
-        performance >= 70 -> KikaoColors.Teal
-        performance >= 55 -> KikaoColors.Gold
-        else -> Color(0xFFB42318)
-    }
-}
-
-private fun performanceMessage(
-    performance: Int
-): String {
-    return when {
-        performance >= 75 -> "Strong class performance"
-        performance >= 65 -> "Class is progressing well"
-        performance >= 55 -> "Monitor performance closely"
-        else -> "Intervention may be needed"
-    }
-}
-
-private fun demoLecturerClasses(): List<LecturerClass> {
-    return listOf(
-
-        LecturerClass(
-            id = "csc_210",
-            code = "CSC 210",
-            name = "Data Structures",
-            students = 84,
-            sessions = 18,
-            attendance = 92,
-            averagePerformance = 78,
-            room = "Lab 3",
-            schedule = "Mon · 10:00 AM",
-            accentColor = KikaoColors.Teal
-        ),
-
-        LecturerClass(
-            id = "csc_221",
-            code = "CSC 221",
-            name = "Database Systems",
-            students = 120,
-            sessions = 16,
-            attendance = 87,
-            averagePerformance = 72,
-            room = "LH 2",
-            schedule = "Tue · 2:00 PM",
-            accentColor = KikaoColors.Gold
-        ),
-
-        LecturerClass(
-            id = "mat_204",
-            code = "MAT 204",
-            name = "Discrete Mathematics",
-            students = 96,
-            sessions = 14,
-            attendance = 78,
-            averagePerformance = 61,
-            room = "Room B14",
-            schedule = "Wed · 8:00 AM",
-            accentColor = Color(0xFF8B5CF6)
-        ),
-
-        LecturerClass(
-            id = "csc_230",
-            code = "CSC 230",
-            name = "Computer Networks",
-            students = 73,
-            sessions = 12,
-            attendance = 89,
-            averagePerformance = 74,
-            room = "Lab 1",
-            schedule = "Thu · 11:00 AM",
-            accentColor = Color(0xFF0EA5A4)
-        )
-    )
-}
-
-@Preview(
-    showBackground = true,
-    showSystemUi = true
+private fun demoLecturerClasses() = listOf(
+    LecturerClass("csc_210", "CSC 210", "Data Structures", 84, 18, 92, 78, "Lab 3", "Mon · 10:00 AM", KikaoColors.Teal)
 )
+
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun MyClassesScreenPreview() {
-    MaterialTheme {
-        MyClassesScreen()
-    }
+    MaterialTheme { MyClassesScreen() }
 }

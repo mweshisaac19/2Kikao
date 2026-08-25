@@ -1,0 +1,85 @@
+package com.mwema.a2kikao.ui.viewmodels
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
+import com.mwema.a2kikao.data.FirebaseManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+
+class LecturerSessionsViewModel : ViewModel() {
+    private val firestore = FirebaseFirestore.getInstance()
+
+    private val _sessions = MutableStateFlow<List<LecturerSessionData>>(emptyList())
+    val sessions: StateFlow<List<LecturerSessionData>> = _sessions
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    init {
+        fetchSessions()
+    }
+
+    private fun fetchSessions() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val uid = FirebaseManager.currentUserUId
+            if (uid != null) {
+                try {
+                    val classes = FirebaseManager.getLecturerClasses(uid)
+                    val courseCodes = classes.map { it.code }.distinct()
+                    
+                    if (courseCodes.isNotEmpty()) {
+                        val sessionMaps = FirebaseManager.getSessionsByCourseCodes(courseCodes)
+                        val dateFormatter = SimpleDateFormat("dd MMM", Locale.getDefault())
+                        
+                        val sessionData = sessionMaps.map { map ->
+                            val timestamp = map["timestamp"] as? Long ?: 0
+                            val statusStr = map["status"] as? String ?: "COMPLETED"
+                            
+                            LecturerSessionData(
+                                id = map["id"] as? String ?: "",
+                                courseCode = map["courseCode"] as? String ?: "",
+                                courseName = map["courseName"] as? String ?: "Course",
+                                topic = map["topic"] as? String ?: "No Topic",
+                                dateLabel = dateFormatter.format(Date(timestamp)),
+                                time = map["startTime"] as? String ?: "",
+                                duration = map["duration"] as? String ?: "",
+                                room = map["room"] as? String ?: "",
+                                studentCount = 120, // Placeholder
+                                attendanceCount = 0, // Need to fetch attendees subcollection size
+                                status = when (statusStr) {
+                                    "LIVE" -> "LIVE"
+                                    "UPCOMING" -> "UPCOMING"
+                                    else -> "COMPLETED"
+                                }
+                            )
+                        }.sortedByDescending { mapOf("LIVE" to 2, "UPCOMING" to 1, "COMPLETED" to 0)[it.status] ?: 0 }
+                        
+                        _sessions.value = sessionData
+                    }
+                } catch (e: Exception) {
+                    // Handle error
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+}
+
+data class LecturerSessionData(
+    val id: String,
+    val courseCode: String,
+    val courseName: String,
+    val topic: String,
+    val dateLabel: String,
+    val time: String,
+    val duration: String,
+    val room: String,
+    val studentCount: Int,
+    val attendanceCount: Int,
+    val status: String
+)

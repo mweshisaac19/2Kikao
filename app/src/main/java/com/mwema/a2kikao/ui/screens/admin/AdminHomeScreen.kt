@@ -1,5 +1,6 @@
 package com.mwema.a2kikao.ui.screens.admin
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,12 +12,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -73,7 +76,7 @@ fun AdminHomeScreen(
 
             Text(
                 text = "Good morning, Administrator 👋",
-                color = KikaoColors.Ink,
+                color = Color.White,
                 fontSize = 21.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -82,7 +85,7 @@ fun AdminHomeScreen(
 
             Text(
                 text = "Here's what is happening across your institution.",
-                color = KikaoColors.MutedText,
+                color = Color.White.copy(alpha = 0.85f),
                 fontSize = 13.sp
             )
 
@@ -155,16 +158,31 @@ fun AdminHomeScreen(
 
 @Composable
 private fun InstitutionStatusCard() {
-    Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = KikaoColors.Indigo)) {
+    val infiniteTransition = rememberInfiniteTransition(label = "LivePulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "Alpha"
+    )
+
+    Card(
+        shape = RoundedCornerShape(22.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+    ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(11.dp).clip(CircleShape).background(KikaoColors.Teal))
+                Box(modifier = Modifier.size(11.dp).alpha(pulseAlpha).clip(CircleShape).background(KikaoColors.Teal))
                 Spacer(modifier = Modifier.width(9.dp))
                 Text(text = "INSTITUTION LIVE", color = KikaoColors.Gold, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
             }
             Spacer(modifier = Modifier.height(11.dp))
             Text(text = "Systems are operating normally.", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            Text(text = "42 classes scheduled today across campus.", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+            Text(text = "42 classes scheduled today across campus.", color = Color.White.copy(alpha = 0.95f), fontSize = 12.sp)
         }
     }
 }
@@ -172,22 +190,42 @@ private fun InstitutionStatusCard() {
 @Composable
 private fun SectionHeader(title: String, subtitle: String) {
     Column {
-        Text(text = title, color = KikaoColors.Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Text(text = subtitle, color = KikaoColors.MutedText, fontSize = 11.sp)
+        Text(text = title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(text = subtitle, color = Color.White.copy(alpha = 0.82f), fontSize = 11.sp)
     }
 }
 
 @Composable
 private fun AdminMetricCard(title: String, value: String, detail: String, icon: String, accent: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(modifier = modifier.clickable(onClick = onClick), shape = RoundedCornerShape(19.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick), 
+        shape = RoundedCornerShape(19.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(11.dp)).background(accent.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
-                Text(text = icon, color = accent, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(11.dp)).background(accent.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                Text(text = icon, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(text = title, color = KikaoColors.MutedText, fontSize = 10.sp)
-            Text(text = value, color = KikaoColors.Ink, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
-            Text(text = detail, color = accent, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            Text(text = title, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+            Text(text = value, color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Surface(
+                color = accent.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text(
+                    text = detail, 
+                    color = Color.White, 
+                    fontSize = 9.sp, 
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
         }
     }
 }
@@ -216,14 +254,20 @@ private fun PerformanceOverviewCard(onClick: () -> Unit) {
 
 @Composable
 private fun QuickAction(icon: String, title: String, subtitle: String, accent: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(modifier = modifier.clickable(onClick = onClick), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick), 
+        shape = RoundedCornerShape(18.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            Box(modifier = Modifier.size(37.dp).clip(RoundedCornerShape(11.dp)).background(accent.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
-                Text(text = icon, color = accent, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Box(modifier = Modifier.size(37.dp).clip(RoundedCornerShape(11.dp)).background(accent.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                Text(text = icon, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(9.dp))
-            Text(text = title, color = KikaoColors.Ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Text(text = subtitle, color = KikaoColors.MutedText, fontSize = 9.sp)
+            Text(text = title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(text = subtitle, color = Color.White.copy(alpha = 0.7f), fontSize = 9.sp)
         }
     }
 }

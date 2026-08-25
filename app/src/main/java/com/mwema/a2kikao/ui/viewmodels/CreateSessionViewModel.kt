@@ -3,6 +3,8 @@ package com.mwema.a2kikao.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
+import com.mwema.a2kikao.data.CourseClass
+import com.mwema.a2kikao.data.FirebaseManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -29,6 +31,22 @@ class CreateSessionViewModel : ViewModel() {
 
     private val _createdSessionId = MutableStateFlow<String?>(null)
     val createdSessionId: StateFlow<String?> = _createdSessionId
+
+    private val _lecturerClasses = MutableStateFlow<List<CourseClass>>(emptyList())
+    val lecturerClasses: StateFlow<List<CourseClass>> = _lecturerClasses
+
+    init {
+        fetchLecturerClasses()
+    }
+
+    private fun fetchLecturerClasses() {
+        viewModelScope.launch {
+            val uid = FirebaseManager.currentUserUId
+            if (uid != null) {
+                _lecturerClasses.value = FirebaseManager.getLecturerClasses(uid)
+            }
+        }
+    }
 
     fun setLocation(lat: Double, lng: Double) {
         _currentLocation.value = SessionLocation(lat, lng)

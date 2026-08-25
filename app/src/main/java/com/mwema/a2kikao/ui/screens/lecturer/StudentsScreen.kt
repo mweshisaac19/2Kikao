@@ -21,15 +21,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mwema.a2kikao.ui.theme.KikaoColors
+import com.mwema.a2kikao.ui.viewmodels.LecturerStudentsViewModel
 
 private data class OverallStudent(
     val id: String,
@@ -63,13 +58,13 @@ private enum class StudentFilter {
 @Composable
 fun StudentsScreen(
     modifier: Modifier = Modifier,
+    viewModel: LecturerStudentsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNotificationClick: () -> Unit = {},
     onStudentClick: (String) -> Unit = {},
     onTabSelected: (LecturerTab) -> Unit = {}
 ) {
-    val students = remember {
-        demoOverallStudents()
-    }
+    val realStudents by viewModel.students.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     var searchQuery by remember {
         mutableStateOf("")
@@ -77,6 +72,20 @@ fun StudentsScreen(
 
     var selectedFilter by remember {
         mutableStateOf(StudentFilter.ALL)
+    }
+
+    val students = realStudents.map { profile ->
+        OverallStudent(
+            id = profile.uid,
+            name = profile.fullName,
+            registrationNumber = profile.registrationNumber ?: "",
+            initials = profile.fullName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.joinToString("").take(2).uppercase(),
+            course = profile.course ?: "N/A",
+            year = "Year ${profile.yearOfStudy ?: "?"}",
+            attendance = profile.overallAttendance ?: 0,
+            average = profile.academicAverage ?: 0,
+            coursesTaken = 1
+        )
     }
 
     val filteredStudents = remember(
@@ -120,16 +129,9 @@ fun StudentsScreen(
         }
     }
 
-    val averageAttendance =
-        students.map { it.attendance }.average().toInt()
-
-    val averagePerformance =
-        students.map { it.average }.average().toInt()
-
-    val atRiskCount =
-        students.count {
-            it.average < 50 || it.attendance < 70
-        }
+    val averageAttendance = if (students.isNotEmpty()) students.map { it.attendance }.average().toInt() else 0
+    val averagePerformance = if (students.isNotEmpty()) students.map { it.average }.average().toInt() else 0
+    val atRiskCount = students.count { it.average < 50 || it.attendance < 70 }
 
     KikaoLecturerScaffold(
         modifier = modifier,
@@ -233,7 +235,13 @@ fun StudentsScreen(
                     }
                 }
 
-                if (filteredStudents.isEmpty()) {
+                if (isLoading) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = KikaoColors.Teal)
+                        }
+                    }
+                } else if (filteredStudents.isEmpty()) {
                     item {
                         EmptyStudentsState()
                     }
@@ -612,12 +620,9 @@ private fun OverallStudentCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(21.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.10f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -632,12 +637,12 @@ private fun OverallStudentCard(
                     modifier = Modifier
                         .size(50.dp)
                         .clip(CircleShape)
-                        .background(status.avatarBackground),
+                        .background(status.avatarBackground.copy(alpha = 0.25f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = student.initials,
-                        color = status.avatarText,
+                        color = Color.White,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold
                     )
@@ -650,7 +655,7 @@ private fun OverallStudentCard(
                 ) {
                     Text(
                         text = student.name,
-                        color = KikaoColors.Ink,
+                        color = Color.White,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -661,7 +666,7 @@ private fun OverallStudentCard(
 
                     Text(
                         text = student.registrationNumber,
-                        color = KikaoColors.MutedText,
+                        color = Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp
                     )
 
@@ -669,7 +674,7 @@ private fun OverallStudentCard(
 
                     Text(
                         text = "${student.course} · ${student.year}",
-                        color = KikaoColors.MutedText,
+                        color = Color.White.copy(alpha = 0.6f),
                         fontSize = 10.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -682,7 +687,7 @@ private fun OverallStudentCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(9.dp))
-                            .background(status.background)
+                            .background(status.background.copy(alpha = 0.25f))
                             .padding(
                                 horizontal = 8.dp,
                                 vertical = 5.dp
@@ -690,7 +695,7 @@ private fun OverallStudentCard(
                     ) {
                         Text(
                             text = status.label,
-                            color = status.textColor,
+                            color = Color.White,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
@@ -700,7 +705,7 @@ private fun OverallStudentCard(
 
                     Text(
                         text = "View ›",
-                        color = KikaoColors.Indigo,
+                        color = KikaoColors.TealLight,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -902,130 +907,6 @@ private fun EmptyStudentsState() {
             )
         }
     }
-}
-
-private fun demoOverallStudents(): List<OverallStudent> {
-    return listOf(
-        OverallStudent(
-            id = "student_001",
-            name = "Amani Mwangi",
-            registrationNumber = "SC211/1234/2025",
-            initials = "AM",
-            course = "Computer Science",
-            year = "Year 2",
-            attendance = 94,
-            average = 86,
-            coursesTaken = 6
-        ),
-
-        OverallStudent(
-            id = "student_002",
-            name = "Brian Otieno",
-            registrationNumber = "SC211/1288/2025",
-            initials = "BO",
-            course = "Computer Science",
-            year = "Year 2",
-            attendance = 91,
-            average = 79,
-            coursesTaken = 6
-        ),
-
-        OverallStudent(
-            id = "student_003",
-            name = "Faith Wanjiku",
-            registrationNumber = "SC211/1321/2025",
-            initials = "FW",
-            course = "Computer Science",
-            year = "Year 2",
-            attendance = 88,
-            average = 82,
-            coursesTaken = 6
-        ),
-
-        OverallStudent(
-            id = "student_004",
-            name = "Kevin Kiptoo",
-            registrationNumber = "SC211/1402/2025",
-            initials = "KK",
-            course = "Information Technology",
-            year = "Year 3",
-            attendance = 76,
-            average = 67,
-            coursesTaken = 5
-        ),
-
-        OverallStudent(
-            id = "student_005",
-            name = "Sharon Atieno",
-            registrationNumber = "IT312/1022/2024",
-            initials = "SA",
-            course = "Information Technology",
-            year = "Year 3",
-            attendance = 84,
-            average = 73,
-            coursesTaken = 5
-        ),
-
-        OverallStudent(
-            id = "student_006",
-            name = "David Kamau",
-            registrationNumber = "CS210/1155/2025",
-            initials = "DK",
-            course = "Computer Science",
-            year = "Year 2",
-            attendance = 64,
-            average = 48,
-            coursesTaken = 6
-        ),
-
-        OverallStudent(
-            id = "student_007",
-            name = "Mercy Njeri",
-            registrationNumber = "CS210/1190/2025",
-            initials = "MN",
-            course = "Computer Science",
-            year = "Year 2",
-            attendance = 68,
-            average = 54,
-            coursesTaken = 6
-        ),
-
-        OverallStudent(
-            id = "student_008",
-            name = "Daniel Ochieng",
-            registrationNumber = "IT311/0944/2024",
-            initials = "DO",
-            course = "Information Technology",
-            year = "Year 3",
-            attendance = 96,
-            average = 91,
-            coursesTaken = 5
-        ),
-
-        OverallStudent(
-            id = "student_009",
-            name = "Lucy Chebet",
-            registrationNumber = "CS211/1432/2025",
-            initials = "LC",
-            course = "Computer Science",
-            year = "Year 2",
-            attendance = 81,
-            average = 69,
-            coursesTaken = 6
-        ),
-
-        OverallStudent(
-            id = "student_010",
-            name = "Samuel Maina",
-            registrationNumber = "CS210/1501/2025",
-            initials = "SM",
-            course = "Computer Science",
-            year = "Year 2",
-            attendance = 59,
-            average = 45,
-            coursesTaken = 6
-        )
-    )
 }
 
 @Preview(

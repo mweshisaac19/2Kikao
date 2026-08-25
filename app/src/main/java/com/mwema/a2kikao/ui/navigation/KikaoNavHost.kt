@@ -200,7 +200,7 @@ fun KikaoNavHost(
                 onQrVerified = { location ->
                     navController.navigate(
                         Screen.LocationVerification(
-                            classId = "session_id", // This would be the actual session ID
+                            classId = location.id, // This is now the actual sessionId from QR
                             className = location.className,
                             roomName = location.roomName,
                             latitude = location.latitude,
@@ -216,6 +216,7 @@ fun KikaoNavHost(
             val route: Screen.LocationVerification = backStackEntry.toRoute()
             LocationVerificationScreen(
                 classLocation = com.mwema.a2kikao.ui.screens.student.ClassLocation(
+                    id = route.classId,
                     className = route.className,
                     roomName = route.roomName,
                     latitude = route.latitude,
@@ -223,17 +224,34 @@ fun KikaoNavHost(
                     allowedRadiusMeters = route.radius
                 ),
                 onBackClick = { navController.popBackStack() },
-                onLocationVerified = { navController.navigate(Screen.SelfieVerification) }
+                onLocationVerified = { 
+                    // Randomize selfie verification (e.g., 40% chance)
+                    val selfieCheckTriggered = (1..100).random() <= 40
+                    navController.navigate(
+                        Screen.SelfieVerification(
+                            sessionId = route.classId,
+                            isRequired = selfieCheckTriggered
+                        )
+                    ) 
+                }
             )
         }
 
-        composable<Screen.SelfieVerification> {
+        composable<Screen.SelfieVerification> { backStackEntry ->
+            val route: Screen.SelfieVerification = backStackEntry.toRoute()
             SelfieVerificationScreen(
-                isSelfieRequired = true,
+                isSelfieRequired = route.isRequired,
                 onBackClick = { navController.popBackStack() },
                 onVerificationComplete = { success ->
                     if (success) {
-                        navController.navigate(Screen.VerificationConfirmed)
+                        navController.navigate(
+                            Screen.VerificationConfirmed(
+                                sessionId = route.sessionId,
+                                className = "Database Systems", // Should fetch from real data
+                                classCode = "CSC 221",
+                                roomName = "Lab 3"
+                            )
+                        )
                     } else {
                         navController.navigate(Screen.VerificationFailed("Face verification failed. Please try again in better lighting."))
                     }
@@ -241,8 +259,13 @@ fun KikaoNavHost(
             )
         }
 
-        composable<Screen.VerificationConfirmed> {
+        composable<Screen.VerificationConfirmed> { backStackEntry ->
+            val route: Screen.VerificationConfirmed = backStackEntry.toRoute()
             VerificationConfirmedScreen(
+                sessionId = route.sessionId,
+                className = route.className,
+                classCode = route.classCode,
+                roomName = route.roomName,
                 onFinish = {
                     navController.navigate(Screen.Dashboard) {
                         popUpTo(Screen.Dashboard) { inclusive = true }
@@ -346,16 +369,7 @@ fun KikaoNavHost(
                 onNotificationClick = { navController.navigate(Screen.LecturerNotifications) },
                 onProfileClick = { navController.navigate(Screen.LecturerProfile) },
                 onStartAttendance = { code ->
-                    navController.navigate(
-                        Screen.LecturerLiveAttendance(
-                            sessionId = "quick_start_$code",
-                            courseCode = code,
-                            courseName = "Database Systems",
-                            sessionTopic = "Indexing & Optimization",
-                            room = "Lab 3",
-                            totalStudents = 120
-                        )
-                    )
+                    navController.navigate(Screen.LecturerCreateSession(initialCourseCode = code))
                 },
                 onViewClass = { code -> navController.navigate(Screen.LecturerClassDetails(code)) },
                 onViewAllClasses = { navController.navigate(Screen.LecturerMyClasses) },
@@ -380,8 +394,14 @@ fun KikaoNavHost(
 
         composable<Screen.LecturerMyClasses> {
             com.mwema.a2kikao.ui.screens.lecturer.MyClassesScreen(
-                onClassClick = { id -> navController.navigate(Screen.LecturerClassDetails(id)) },
+                onClassClick = { course -> 
+                    navController.navigate(Screen.LecturerCreateSession(initialCourseCode = course.code)) 
+                },
+                onEditClassClick = { id -> 
+                    navController.navigate(Screen.LecturerAddClass(classId = id)) 
+                },
                 onNotificationClick = { navController.navigate(Screen.LecturerNotifications) },
+                onAddClassClick = { navController.navigate(Screen.LecturerAddClass()) },
                 onTabSelected = { tab ->
                     when (tab) {
                         LecturerTab.HOME -> navController.navigate(Screen.LecturerHome)
@@ -398,7 +418,7 @@ fun KikaoNavHost(
         composable<Screen.LecturerSessions> {
             SessionsScreen(
                 onSessionClick = { id -> navController.navigate(Screen.LecturerSessionDetails(id)) },
-                onCreateSession = { navController.navigate(Screen.LecturerCreateSession) },
+                onCreateSession = { navController.navigate(Screen.LecturerCreateSession()) },
                 onCancelSession = { navController.navigate(Screen.LecturerSessionCancellationLogger) },
                 onNotificationClick = { navController.navigate(Screen.LecturerNotifications) },
                 onTabSelected = { tab ->
@@ -677,6 +697,18 @@ fun KikaoNavHost(
         composable<Screen.LecturerTimetable> {
             LecturerTimetableScreen(
                 onBack = { navController.popBackStack() },
+                onStartAttendance = { course ->
+                    navController.navigate(
+                        Screen.LecturerLiveAttendance(
+                            sessionId = "sched_${course.id}_${System.currentTimeMillis()}",
+                            courseCode = course.code,
+                            courseName = course.name,
+                            sessionTopic = "Regular Session",
+                            room = course.room,
+                            totalStudents = course.studentsEnrolled.size
+                        )
+                    )
+                },
                 onTabSelected = { tab ->
                     when (tab) {
                         LecturerTab.HOME -> navController.navigate(Screen.LecturerHome)
@@ -690,8 +722,10 @@ fun KikaoNavHost(
             )
         }
 
-        composable<Screen.LecturerCreateSession> {
+        composable<Screen.LecturerCreateSession> { backStackEntry ->
+            val route: Screen.LecturerCreateSession = backStackEntry.toRoute()
             CreateSessionScreen(
+                initialCourseCode = route.initialCourseCode,
                 onBack = { navController.popBackStack() },
                 onSessionCreated = { sessionId, code, name, topic, room, students ->
                     navController.navigate(
@@ -705,6 +739,15 @@ fun KikaoNavHost(
                         )
                     )
                 }
+            )
+        }
+
+        composable<Screen.LecturerAddClass> { backStackEntry ->
+            val route: Screen.LecturerAddClass = backStackEntry.toRoute()
+            LecturerAddClassScreen(
+                classId = route.classId,
+                onBack = { navController.popBackStack() },
+                onSuccess = { navController.popBackStack() }
             )
         }
 

@@ -53,7 +53,7 @@ fun LecturerProfileScreen(
         modifier = modifier,
         selectedTab = LecturerTab.PROFILE,
         screenTitle = "Your profile",
-        screenSubtitle = "Account, preferences and leave management",
+        screenSubtitle = "Account, preferences and requests",
         onNotificationClick = onNotificationClick,
         onTabSelected = onTabSelected
     ) { innerPadding ->
@@ -115,7 +115,7 @@ fun LecturerProfileScreen(
             Spacer(modifier = Modifier.height(28.dp))
             
             // Leave Requests Section
-            SectionLabel("Leave Management")
+            SectionLabel("Requests & Disputes")
             Spacer(modifier = Modifier.height(12.dp))
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -177,7 +177,7 @@ private fun LecturerHeroCard(name: String, school: String, onEdit: () -> Unit) {
                 Spacer(modifier = Modifier.width(18.dp))
                 Column {
                     Text(text = name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(text = school, color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+                    Text(text = school, color = Color.White.copy(alpha = 0.90f), fontSize = 13.sp)
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
@@ -252,13 +252,14 @@ private fun LeaveManagementSection(requests: List<AttendanceRequestData>, onRequ
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))
+            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
         ) {
             Text(
-                "No pending leave requests", 
+                "No pending requests or disputes", 
                 modifier = Modifier.padding(24.dp).fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                color = KikaoColors.MutedText,
+                color = Color.White.copy(alpha = 0.7f),
                 fontSize = 13.sp
             )
         }
@@ -268,15 +269,19 @@ private fun LeaveManagementSection(requests: List<AttendanceRequestData>, onRequ
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { onRequestClick(request) },
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.10f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(text = request.studentName, fontWeight = FontWeight.Bold, color = KikaoColors.Ink)
-                            Text(text = "Class: ${request.classId}", color = KikaoColors.MutedText, fontSize = 11.sp)
+                            Text(text = request.studentName, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(
+                                text = "${if (request.type == "LEAVE") "Leave" else "Dispute"} · Class: ${request.classId}", 
+                                color = Color.White.copy(alpha = 0.7f), 
+                                fontSize = 11.sp
+                            )
                         }
-                        Text(text = "Review ›", color = KikaoColors.Teal, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(text = "Review ›", color = KikaoColors.TealLight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
@@ -288,16 +293,25 @@ private fun LeaveManagementSection(requests: List<AttendanceRequestData>, onRequ
 private fun LeaveRequestDialog(request: AttendanceRequestData, onApprove: () -> Unit, onReject: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Leave Request", fontWeight = FontWeight.Bold) },
+        title = { Text(if (request.type == "LEAVE") "Leave Request" else "Attendance Dispute", fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 Text(request.studentName, fontWeight = FontWeight.Bold, color = KikaoColors.Ink)
                 Text(request.studentId, fontSize = 12.sp, color = KikaoColors.MutedText)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Reason:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Reason / Issue:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 Text(request.reason, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Duration: ${request.startDate} to ${request.endDate}", fontSize = 12.sp)
+                if (request.type == "LEAVE") {
+                    Text("Duration: ${request.startDate} to ${request.endDate}", fontSize = 12.sp)
+                } else {
+                    Text("Affected Session: ${request.affectedSessionDate}", fontSize = 12.sp)
+                }
+                if (request.details.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Additional Details:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(request.details, fontSize = 13.sp)
+                }
             }
         },
         confirmButton = {
@@ -321,7 +335,7 @@ private fun SignOutButton(onSignOut: () -> Unit) {
         onClick = onSignOut,
         modifier = Modifier.fillMaxWidth().height(54.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEF2F2))
+        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.12f))
     ) {
         Text("Sign Out of Kikao", color = Color(0xFFDC3545), fontWeight = FontWeight.Bold)
     }
@@ -331,7 +345,7 @@ private fun SignOutButton(onSignOut: () -> Unit) {
 private fun SectionLabel(label: String) {
     Text(
         text = label.uppercase(), 
-        color = KikaoColors.MutedText, 
+        color = Color.White.copy(alpha = 0.90f), 
         fontSize = 11.sp, 
         fontWeight = FontWeight.ExtraBold, 
         letterSpacing = 1.sp

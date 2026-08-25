@@ -29,4 +29,13 @@ class LecturerClassesViewModel : ViewModel() {
             _isLoading.value = false
         }
     }
+
+    fun deleteClass(classId: String) {
+        viewModelScope.launch {
+            val result = FirebaseManager.deleteClass(classId)
+            if (result.isSuccess) {
+                fetchClasses()
+            }
+        }
+    }
 }

@@ -1,30 +1,27 @@
 package com.mwema.a2kikao.ui.screens.student
 
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -33,7 +30,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mwema.a2kikao.ui.theme.KikaoColors
+import com.mwema.a2kikao.ui.viewmodels.StudentDashboardClass
 import com.mwema.a2kikao.ui.viewmodels.StudentDashboardViewModel
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.*
 
 private data class TodayClass(
     val time: String,
@@ -46,7 +47,8 @@ private data class TodayClass(
 private enum class ClassStatus {
     PRESENT,
     NEXT,
-    LATER
+    LATER,
+    MISSED
 }
 
 @Composable
@@ -63,54 +65,32 @@ fun StudentDashboardScreen(
 ) {
     val userProfile by viewModel.userProfile.collectAsState()
     val attendancePercentage by viewModel.attendancePercentage.collectAsState()
-    val todayClasses by viewModel.todayClasses.collectAsState()
+    val dashboardClasses by viewModel.dashboardClasses.collectAsState()
     
     val studentName = userProfile?.fullName?.substringBefore(" ") ?: "Student"
+    val currentDate = remember { SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date()) }
     
-    val mappedClasses = todayClasses.mapIndexed { index, course ->
+    val mappedClasses = dashboardClasses.mapIndexed { index, dashClass ->
         TodayClass(
-            time = course.time,
-            title = course.name,
-            code = course.code,
-            location = course.room,
-            status = when (index) {
-                0 -> ClassStatus.PRESENT
-                1 -> ClassStatus.NEXT
+            time = dashClass.course.time.substringBefore("-").trim(),
+            title = dashClass.course.name,
+            code = dashClass.course.code,
+            location = dashClass.course.room,
+            status = when {
+                dashClass.isAttended -> ClassStatus.PRESENT
+                dashClass.isMissed -> ClassStatus.MISSED
                 else -> ClassStatus.LATER
             }
         )
     }
 
-    // Fallback classes if none are in DB
-    val classesToShow = if (mappedClasses.isNotEmpty()) mappedClasses else listOf(
-        TodayClass(
-            time = "09:00",
-            title = "Data Structures",
-            code = "CSC 210",
-            location = "Hall B",
-            status = ClassStatus.PRESENT
-        ),
-        TodayClass(
-            time = "14:00",
-            title = "Database Systems",
-            code = "CSC 221",
-            location = "Lab 3",
-            status = ClassStatus.NEXT
-        ),
-        TodayClass(
-            time = "16:00",
-            title = "Discrete Mathematics",
-            code = "MAT 204",
-            location = "Room 12",
-            status = ClassStatus.LATER
-        )
-    )
+    val classesToShow = mappedClasses
 
     KikaoStudentScaffold(
         modifier = modifier,
         selectedTab = StudentTab.HOME,
         screenTitle = "Good morning, $studentName",
-        screenSubtitle = "Tuesday, 18 August",
+        screenSubtitle = currentDate,
         studentName = studentName,
         onNotificationClick = onNotificationClick,
         onScanClick = onScanClick,
@@ -119,6 +99,7 @@ fun StudentDashboardScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(top = 20.dp, bottom = 100.dp)
         ) {
@@ -126,11 +107,16 @@ fun StudentDashboardScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            AttendanceOverview(
-                attendancePercentage = attendancePercentage,
-                attendedSessions = if (attendancePercentage > 0) (45 * (attendancePercentage / 100f)).toInt() else 39,
-                totalSessions = 45
-            )
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn() + expandVertically()
+            ) {
+                AttendanceOverview(
+                    attendancePercentage = attendancePercentage,
+                    attendedSessions = if (attendancePercentage > 0) (45 * (attendancePercentage / 100f)).toInt() else 39,
+                    totalSessions = 45
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -142,11 +128,34 @@ fun StudentDashboardScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            classesToShow.forEach { classItem ->
-                TodayClassCard(
-                    classItem = classItem,
-                    onClick = { onClassClick(classItem.code) }
+            dashboardClasses.forEachIndexed { index, dashClass ->
+                val classItem = TodayClass(
+                    time = dashClass.course.time.substringBefore("-").trim(),
+                    title = dashClass.course.name,
+                    code = dashClass.course.code,
+                    location = dashClass.course.room,
+                    status = when {
+                        dashClass.isAttended -> ClassStatus.PRESENT
+                        dashClass.isMissed -> ClassStatus.MISSED
+                        else -> ClassStatus.LATER
+                    }
                 )
+                
+                var visible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    delay(index * 100L)
+                    visible = true
+                }
+
+                AnimatedVisibility(
+                    visible = visible,
+                    enter = slideInHorizontally { it } + fadeIn()
+                ) {
+                    TodayClassCard(
+                        classItem = classItem,
+                        onClick = { onClassClick(classItem.code) }
+                    )
+                }
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
@@ -193,9 +202,10 @@ private fun VerificationBanner() {
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = Color.White.copy(alpha = 0.12f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -207,7 +217,7 @@ private fun VerificationBanner() {
                 modifier = Modifier
                     .size(42.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(KikaoColors.TealLight),
+                    .background(KikaoColors.Teal.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -223,14 +233,14 @@ private fun VerificationBanner() {
             Column {
                 Text(
                     text = "University verified",
-                    color = KikaoColors.Ink,
+                    color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
                     text = "Your student account is active.",
-                    color = KikaoColors.MutedText,
+                    color = Color.White.copy(alpha = 0.7f),
                     fontSize = 12.sp
                 )
             }
@@ -266,7 +276,7 @@ private fun AttendanceOverview(
             Column {
                 Text(
                     text = "Semester attendance",
-                    color = Color.White.copy(alpha = 0.78f),
+                    color = Color.White,
                     fontSize = 12.sp
                 )
 
@@ -283,7 +293,7 @@ private fun AttendanceOverview(
 
                 Text(
                     text = "$attendedSessions of $totalSessions sessions attended",
-                    color = Color.White.copy(alpha = 0.82f),
+                    color = Color.White.copy(alpha = 0.95f),
                     fontSize = 12.sp,
                     lineHeight = 17.sp
                 )
@@ -313,31 +323,48 @@ private fun AttendanceRing(
     percentage: Int,
     modifier: Modifier = Modifier
 ) {
+    val animatedPercentage by animateFloatAsState(
+        targetValue = percentage / 100f,
+        animationSpec = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+        label = "Attendance sweep"
+    )
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(118.dp)) {
+            // Background track
             drawCircle(
-                color = Color.White.copy(alpha = 0.22f),
+                color = Color.White.copy(alpha = 0.15f),
                 style = Stroke(width = 11.dp.toPx())
             )
 
+            // Dynamic progress with gradient
             drawArc(
-                color = KikaoColors.Gold,
+                brush = Brush.sweepGradient(
+                    colors = listOf(KikaoColors.Gold, KikaoColors.TealLight, KikaoColors.Gold)
+                ),
                 startAngle = -90f,
-                sweepAngle = (percentage / 100f) * 360f,
+                sweepAngle = animatedPercentage * 360f,
                 useCenter = false,
                 style = Stroke(
                     width = 11.dp.toPx(),
                     cap = StrokeCap.Round
                 )
             )
+            
+            // Outer glow effect
+            drawCircle(
+                color = KikaoColors.Gold.copy(alpha = 0.08f),
+                radius = size.width / 2 + 8.dp.toPx(),
+                style = Stroke(width = 1.dp.toPx())
+            )
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "$percentage%",
+                text = "${(animatedPercentage * 100).toInt()}%",
                 color = Color.White,
                 fontSize = 25.sp,
                 fontWeight = FontWeight.ExtraBold
@@ -345,7 +372,7 @@ private fun AttendanceRing(
 
             Text(
                 text = "present",
-                color = Color.White.copy(alpha = 0.76f),
+                color = Color.White.copy(alpha = 0.85f),
                 fontSize = 10.sp
             )
         }
@@ -365,14 +392,14 @@ private fun SectionHeader(
     ) {
         Text(
             text = title,
-            color = KikaoColors.Ink,
+            color = Color.White,
             fontSize = 19.sp,
             fontWeight = FontWeight.Bold
         )
 
         Text(
             text = actionText,
-            color = KikaoColors.Teal,
+            color = KikaoColors.TealLight,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.clickable(onClick = onActionClick)
@@ -388,19 +415,22 @@ private fun TodayClassCard(
     val statusColor = when (classItem.status) {
         ClassStatus.PRESENT -> KikaoColors.Teal
         ClassStatus.NEXT -> KikaoColors.Gold
-        ClassStatus.LATER -> KikaoColors.MutedText
+        ClassStatus.LATER -> Color.White.copy(alpha = 0.5f)
+        ClassStatus.MISSED -> Color(0xFFDC3545)
     }
 
     val statusBackground = when (classItem.status) {
-        ClassStatus.PRESENT -> KikaoColors.TealLight
-        ClassStatus.NEXT -> Color(0xFFFFF2CC)
-        ClassStatus.LATER -> Color(0xFFF1F5F9)
+        ClassStatus.PRESENT -> KikaoColors.Teal.copy(alpha = 0.15f)
+        ClassStatus.NEXT -> KikaoColors.Gold.copy(alpha = 0.15f)
+        ClassStatus.LATER -> Color.White.copy(alpha = 0.08f)
+        ClassStatus.MISSED -> Color(0xFFDC3545).copy(alpha = 0.15f)
     }
 
     val statusText = when (classItem.status) {
         ClassStatus.PRESENT -> "PRESENT"
         ClassStatus.NEXT -> "UP NEXT"
         ClassStatus.LATER -> "LATER"
+        ClassStatus.MISSED -> "MISSED"
     }
 
     Card(
@@ -408,8 +438,8 @@ private fun TodayClassCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.10f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
     ) {
         Row(
             modifier = Modifier
@@ -423,7 +453,7 @@ private fun TodayClassCard(
             ) {
                 Text(
                     text = classItem.time,
-                    color = KikaoColors.Indigo,
+                    color = Color.White,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
@@ -442,7 +472,7 @@ private fun TodayClassCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = classItem.title,
-                    color = KikaoColors.Ink,
+                    color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -451,7 +481,7 @@ private fun TodayClassCard(
 
                 Text(
                     text = "${classItem.code} · ${classItem.location}",
-                    color = KikaoColors.MutedText,
+                    color = Color.White.copy(alpha = 0.65f),
                     fontSize = 12.sp
                 )
             }
@@ -517,7 +547,7 @@ private fun ScanReminderCard(
 
                 Text(
                     text = "Database Systems starts in 2h 14m.",
-                    color = Color.White.copy(alpha = 0.76f),
+                    color = Color.White.copy(alpha = 0.90f),
                     fontSize = 12.sp
                 )
             }
@@ -537,14 +567,15 @@ private fun InsightCard() {
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = Color.White.copy(alpha = 0.12f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(17.dp)) {
             Text(
                 text = "Kikao insight",
-                color = KikaoColors.Teal,
+                color = KikaoColors.TealLight,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.ExtraBold
             )
@@ -553,7 +584,7 @@ private fun InsightCard() {
 
             Text(
                 text = "Your attendance improved by 8% this month.",
-                color = KikaoColors.Ink,
+                color = Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -562,7 +593,7 @@ private fun InsightCard() {
 
             Text(
                 text = "Keep attending your afternoon sessions to maintain your progress.",
-                color = KikaoColors.MutedText,
+                color = Color.White.copy(alpha = 0.75f),
                 fontSize = 12.sp,
                 lineHeight = 17.sp
             )

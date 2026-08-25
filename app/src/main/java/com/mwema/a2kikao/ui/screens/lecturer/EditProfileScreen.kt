@@ -56,7 +56,7 @@ fun EditProfileScreen(
         }
     ) { innerPadding ->
         
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding).imePadding()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()

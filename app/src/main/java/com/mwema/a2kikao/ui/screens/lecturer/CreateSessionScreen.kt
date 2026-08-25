@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import com.mwema.a2kikao.data.CourseClass
 import com.mwema.a2kikao.ui.theme.KikaoColors
 import com.mwema.a2kikao.ui.viewmodels.CreateSessionViewModel
 
@@ -34,12 +36,15 @@ import com.mwema.a2kikao.ui.viewmodels.CreateSessionViewModel
 @Composable
 fun CreateSessionScreen(
     modifier: Modifier = Modifier,
+    initialCourseCode: String? = null,
     viewModel: CreateSessionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit = {},
     onSessionCreated: (String, String, String, String, String, Int) -> Unit = { _, _, _, _, _, _ -> }
 ) {
     val context = LocalContext.current
-    var courseCode by rememberSaveable { mutableStateOf("") }
+    val lecturerClasses by viewModel.lecturerClasses.collectAsState()
+    
+    var courseCode by rememberSaveable { mutableStateOf(initialCourseCode ?: "") }
     var topic by rememberSaveable { mutableStateOf("") }
     var room by rememberSaveable { mutableStateOf("") }
     var duration by rememberSaveable { mutableStateOf("2 hrs") }
@@ -49,6 +54,8 @@ fun CreateSessionScreen(
     val isCreating by viewModel.isCreating.collectAsState()
     val createSuccess by viewModel.createSuccess.collectAsState()
     val createdSessionId by viewModel.createdSessionId.collectAsState()
+
+    var showCourseDropdown by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -63,6 +70,15 @@ fun CreateSessionScreen(
     LaunchedEffect(createSuccess) {
         if (createSuccess && createdSessionId != null) {
             onSessionCreated(createdSessionId!!, courseCode, topic, room, duration, 120)
+        }
+    }
+
+    // Auto-fill room/time if a class is selected
+    LaunchedEffect(courseCode, lecturerClasses) {
+        val selectedClass = lecturerClasses.find { it.code == courseCode }
+        if (selectedClass != null) {
+            room = selectedClass.room
+            startTime = selectedClass.time.substringBefore("-").trim()
         }
     }
 
@@ -85,6 +101,7 @@ fun CreateSessionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
@@ -97,22 +114,57 @@ fun CreateSessionScreen(
                     Text("Session Details", color = KikaoColors.Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    OutlinedTextField(
-                        value = courseCode,
-                        onValueChange = { courseCode = it },
-                        label = { Text("Course Code") },
-                        placeholder = { Text("e.g. CSC 221") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                    Box {
+                        OutlinedTextField(
+                            value = courseCode,
+                            onValueChange = { courseCode = it },
+                            label = { Text("Course Code") },
+                            placeholder = { Text("e.g. CSC 221") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            trailingIcon = {
+                                IconButton(onClick = { showCourseDropdown = true }) {
+                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Select Course")
+                                }
+                            }
+                        )
+                        
+                        DropdownMenu(
+                            expanded = showCourseDropdown,
+                            onDismissRequest = { showCourseDropdown = false },
+                            modifier = Modifier.fillMaxWidth(0.8f)
+                        ) {
+                            if (lecturerClasses.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("No classes found", color = KikaoColors.MutedText) },
+                                    onClick = { showCourseDropdown = false }
+                                )
+                            } else {
+                                lecturerClasses.forEach { cls ->
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Column {
+                                                Text(cls.code, fontWeight = FontWeight.Bold)
+                                                Text(cls.name, fontSize = 11.sp, color = KikaoColors.MutedText)
+                                            }
+                                        },
+                                        onClick = {
+                                            courseCode = cls.code
+                                            showCourseDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     OutlinedTextField(
                         value = topic,
                         onValueChange = { topic = it },
-                        label = { Text("Topic") },
-                        placeholder = { Text("e.g. Database Normalization") },
+                        label = { Text("Topic / Lesson Name") },
+                        placeholder = { Text("e.g. Intro to Firebase") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     )

@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mwema.a2kikao.ui.theme.KikaoColors
 import com.mwema.a2kikao.ui.viewmodels.TimetableViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class TimetableClass(
     val courseCode: String,
@@ -34,8 +36,12 @@ data class TimetableClass(
     val accent: Color
 )
 
-private val days = listOf("MON", "TUE", "WED", "THU", "FRI")
-private val dayNumbers = listOf("17", "18", "19", "20", "21")
+private data class DayInfo(
+    val name: String,
+    val date: String,
+    val dayOfMonth: String,
+    val fullDate: String
+)
 
 @Composable
 fun TimetableScreen(
@@ -46,34 +52,47 @@ fun TimetableScreen(
     onClassClick: (TimetableClass) -> Unit = {},
     onTabSelected: (StudentTab) -> Unit = {}
 ) {
-    var selectedDay by remember { mutableIntStateOf(1) }
+    val weekDays = remember { getCurrentWeekDays() }
+    val currentDayIndex = remember { 
+        val calendar = Calendar.getInstance()
+        val day = calendar.get(Calendar.DAY_OF_WEEK)
+        // Calendar.MONDAY is 2, Kikao indices are 0-4
+        (day - Calendar.MONDAY).coerceIn(0, 4)
+    }
+    
+    var selectedDay by remember { mutableIntStateOf(currentDayIndex) }
     val realClasses by viewModel.classes.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    val mappedClasses = realClasses.map { course ->
-        TimetableClass(
-            courseCode = course.code,
-            courseName = course.name,
-            lecturer = course.lecturer,
-            room = course.room,
-            startTime = course.time.substringBefore("-").trim(),
-            endTime = course.time.substringAfter("-").trim(),
-            type = "Session",
-            day = when (course.day.lowercase()) {
-                "monday" -> 0
-                "tuesday" -> 1
-                "wednesday" -> 2
-                "thursday" -> 3
-                "friday" -> 4
-                else -> 0
-            },
-            accent = when (course.code.take(3)) {
-                "CSC" -> KikaoColors.Teal
-                "MAT" -> Color(0xFF8B5CF6)
-                "BIT" -> KikaoColors.Gold
-                else -> KikaoColors.Indigo
-            }
-        )
+    val mappedClasses = realClasses.flatMap { course ->
+        val classDays = if (course.days.isNotEmpty()) course.days else listOf(course.day)
+        classDays.map { dayStr ->
+            TimetableClass(
+                courseCode = course.code,
+                courseName = course.name,
+                lecturer = course.lecturer,
+                room = course.room,
+                startTime = course.time.substringBefore("-").trim(),
+                endTime = course.time.substringAfter("-").trim(),
+                type = "Session",
+                day = when (dayStr.lowercase()) {
+                    "monday" -> 0
+                    "tuesday" -> 1
+                    "wednesday" -> 2
+                    "thursday" -> 3
+                    "friday" -> 4
+                    "saturday" -> 5
+                    "sunday" -> 6
+                    else -> 0
+                },
+                accent = when (course.code.take(3)) {
+                    "CSC" -> KikaoColors.Teal
+                    "MAT" -> Color(0xFF8B5CF6)
+                    "BIT" -> KikaoColors.Gold
+                    else -> KikaoColors.Indigo
+                }
+            )
+        }
     }
 
     val displayClasses = if (mappedClasses.isNotEmpty()) mappedClasses else demoTimetableClasses()
@@ -109,7 +128,7 @@ fun TimetableScreen(
 
             Text(
                 text = "This week",
-                color = KikaoColors.Ink,
+                color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -118,6 +137,7 @@ fun TimetableScreen(
 
             DaySelector(
                 selectedDay = selectedDay,
+                days = weekDays,
                 onDaySelected = { selectedDay = it }
             )
 
@@ -125,21 +145,16 @@ fun TimetableScreen(
 
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
+                    val selectedDateInfo = weekDays[selectedDay]
                     Text(
-                        text = when (selectedDay) {
-                            0 -> "Monday"
-                            1 -> "Tuesday"
-                            2 -> "Wednesday"
-                            3 -> "Thursday"
-                            else -> "Friday"
-                        },
-                        color = KikaoColors.Ink,
+                        text = selectedDateInfo.name,
+                        color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${dayNumbers[selectedDay]} August 2026",
-                        color = KikaoColors.MutedText,
+                        text = selectedDateInfo.fullDate,
+                        color = Color.White.copy(alpha = 0.85f),
                         fontSize = 11.sp
                     )
                 }
@@ -183,15 +198,19 @@ fun TimetableScreen(
 
 @Composable
 private fun TimetableSummaryCard(classCount: Int) {
-    Card(shape = RoundedCornerShape(25.dp), colors = CardDefaults.cardColors(containerColor = KikaoColors.Indigo)) {
+    Card(
+        shape = RoundedCornerShape(25.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+    ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("YOUR ACADEMIC WEEK", color = Color.White.copy(alpha = 0.68f), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+                    Text("YOUR ACADEMIC WEEK", color = Color.White.copy(alpha = 0.95f), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
                     Spacer(modifier = Modifier.height(7.dp))
                     Text("Stay ahead of your classes", color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(5.dp))
-                    Text("Your verified classes, rooms and lecturers in one place.", color = Color.White.copy(alpha = 0.72f), fontSize = 11.sp, lineHeight = 16.sp)
+                    Text("Your verified classes, rooms and lecturers in one place.", color = Color.White.copy(alpha = 0.95f), fontSize = 11.sp, lineHeight = 16.sp)
                 }
                 Box(modifier = Modifier.size(50.dp).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
                     Text("▦", color = KikaoColors.Gold, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
@@ -199,7 +218,7 @@ private fun TimetableSummaryCard(classCount: Int) {
             }
             Spacer(modifier = Modifier.height(19.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Today's schedule", color = Color.White.copy(alpha = 0.78f), fontSize = 11.sp)
+                Text("Today's schedule", color = Color.White, fontSize = 11.sp)
                 Text("$classCount ${if (classCount == 1) "class" else "classes"}", color = KikaoColors.Gold, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
             }
         }
@@ -207,9 +226,9 @@ private fun TimetableSummaryCard(classCount: Int) {
 }
 
 @Composable
-private fun DaySelector(selectedDay: Int, onDaySelected: (Int) -> Unit) {
+private fun DaySelector(selectedDay: Int, days: List<DayInfo>, onDaySelected: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        days.forEachIndexed { index, day ->
+        days.forEachIndexed { index, dayInfo ->
             val selected = index == selectedDay
             Column(
                 modifier = Modifier
@@ -220,9 +239,9 @@ private fun DaySelector(selectedDay: Int, onDaySelected: (Int) -> Unit) {
                     .padding(vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = day, color = if (selected) Color.White.copy(alpha = 0.72f) else KikaoColors.MutedText, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold)
+                Text(text = dayInfo.date, color = if (selected) Color.White.copy(alpha = 0.72f) else KikaoColors.MutedText, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = dayNumbers[index], color = if (selected) KikaoColors.Gold else KikaoColors.Ink, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+                Text(text = dayInfo.dayOfMonth, color = if (selected) KikaoColors.Gold else KikaoColors.Ink, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
                 if (selected) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Box(modifier = Modifier.size(5.dp).clip(RoundedCornerShape(5.dp)).background(KikaoColors.Gold))
@@ -237,14 +256,15 @@ private fun TimetableClassCard(timetableClass: TimetableClass, isNext: Boolean, 
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(21.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isNext) 4.dp else 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.10f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
             Column(modifier = Modifier.width(64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = timetableClass.startTime, color = KikaoColors.Ink, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                Text(text = timetableClass.startTime, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(text = timetableClass.endTime, color = KikaoColors.MutedText, fontSize = 10.sp)
+                Text(text = timetableClass.endTime, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
                 Spacer(modifier = Modifier.height(12.dp))
                 Box(modifier = Modifier.width(3.dp).height(34.dp).clip(RoundedCornerShape(5.dp)).background(timetableClass.accent))
             }
@@ -254,26 +274,26 @@ private fun TimetableClassCard(timetableClass: TimetableClass, isNext: Boolean, 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = timetableClass.courseCode, color = timetableClass.accent, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = timetableClass.courseName, color = KikaoColors.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = timetableClass.courseName, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (isNext) {
-                        Text("NEXT", color = KikaoColors.Teal, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.clip(RoundedCornerShape(7.dp)).background(KikaoColors.TealLight).padding(horizontal = 7.dp, vertical = 5.dp))
+                        Text("NEXT", color = KikaoColors.Teal, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.clip(RoundedCornerShape(7.dp)).background(KikaoColors.Teal.copy(alpha = 0.2f)).padding(horizontal = 7.dp, vertical = 5.dp))
                     }
                 }
                 Spacer(modifier = Modifier.height(11.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("⌂", color = KikaoColors.MutedText, fontSize = 12.sp)
+                    Text("⌂", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text(text = timetableClass.room, color = KikaoColors.MutedText, fontSize = 11.sp)
+                    Text(text = timetableClass.room, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
                     Spacer(modifier = Modifier.width(12.dp))
                     Text("•", color = timetableClass.accent, fontSize = 11.sp)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = timetableClass.type, color = KikaoColors.MutedText, fontSize = 11.sp)
+                    Text(text = timetableClass.type, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
                 }
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(text = timetableClass.lecturer, color = KikaoColors.MutedText, fontSize = 11.sp)
+                Text(text = timetableClass.lecturer, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
             }
-            Text("›", color = KikaoColors.MutedText, fontSize = 24.sp, modifier = Modifier.padding(top = 18.dp))
+            Text("›", color = Color.White.copy(alpha = 0.5f), fontSize = 24.sp, modifier = Modifier.padding(top = 18.dp))
         }
     }
 }
@@ -295,9 +315,13 @@ private fun EmptyDayCard() {
 
 @Composable
 private fun TimetableLegend() {
-    Card(shape = RoundedCornerShape(19.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F9FC))) {
+    Card(
+        shape = RoundedCornerShape(19.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+    ) {
         Column(modifier = Modifier.padding(15.dp)) {
-            Text("Class types", color = KikaoColors.Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text("Class types", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 LegendItem("Lecture", KikaoColors.Teal)
@@ -313,25 +337,56 @@ private fun LegendItem(label: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = Modifier.size(8.dp).clip(RoundedCornerShape(8.dp)).background(color))
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = label, color = KikaoColors.MutedText, fontSize = 10.sp)
+        Text(text = label, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
     }
 }
 
 @Composable
 private fun AcademicTimetableInsight() {
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E8))) {
+    Card(
+        shape = RoundedCornerShape(20.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.10f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+    ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(KikaoColors.Gold), contentAlignment = Alignment.Center) {
-                Text("✦", color = KikaoColors.DeepIndigo, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+            Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(13.dp)).background(KikaoColors.Gold.copy(alpha = 0.25f)), contentAlignment = Alignment.Center) {
+                Text("✦", color = KikaoColors.Gold, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text("Kikao insight", color = KikaoColors.Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text("Kikao insight", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(3.dp))
-                Text("Your timetable connects directly with attendance. Missing a scheduled session can affect your academic analytics.", color = KikaoColors.MutedText, fontSize = 11.sp, lineHeight = 16.sp)
+                Text("Your timetable connects directly with attendance. Missing a scheduled session can affect your academic analytics.", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, lineHeight = 16.sp)
             }
         }
     }
+}
+
+private fun getCurrentWeekDays(): List<DayInfo> {
+    val days = mutableListOf<DayInfo>()
+    val calendar = Calendar.getInstance()
+    
+    // Set to Monday of the current week
+    calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+    
+    val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
+    val dayNumberFormat = SimpleDateFormat("d", Locale.getDefault())
+    val fullDateFormat = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
+    
+    val dayNames = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+
+    for (i in 0..4) {
+        days.add(
+            DayInfo(
+                name = dayNames[i],
+                date = dayFormat.format(calendar.time).uppercase(),
+                dayOfMonth = dayNumberFormat.format(calendar.time),
+                fullDate = fullDateFormat.format(calendar.time)
+            )
+        )
+        calendar.add(Calendar.DAY_OF_MONTH, 1)
+    }
+    return days
 }
 
 private fun demoTimetableClasses() = listOf(

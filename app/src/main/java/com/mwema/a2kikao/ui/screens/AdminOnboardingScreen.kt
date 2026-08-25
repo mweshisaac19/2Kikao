@@ -115,7 +115,7 @@ private fun OnboardingSummaryCard() {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text = text, color = KikaoColors.Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+    Text(text = text, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
 }
 
 @Preview(showBackground = true, showSystemUi = true)

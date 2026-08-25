@@ -47,37 +47,45 @@ fun KikaoLecturerScaffold(
     onTabSelected: (LecturerTab) -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
-    Scaffold(
-        modifier = modifier,
-        containerColor = KikaoColors.Background,
-        topBar = {
-            KikaoLecturerHeader(
-                title = screenTitle,
-                subtitle = screenSubtitle,
-                lecturerName = lecturerName,
-                onBackClick = onBackClick,
-                onNotificationClick = onNotificationClick,
-                onProfileClick = onProfileClick
-            )
-        },
-        bottomBar = {
-            if (showBottomBar) {
-                KikaoLecturerBottomBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = onTabSelected
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        KikaoColors.DeepIndigo,
+                        KikaoColors.Indigo,
+                        Color(0xFF31539A)
+                    )
                 )
-            }
+            )
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawKikaoBackground()
         }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(KikaoColors.Background)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawKikaoBackground()
-            }
 
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            topBar = {
+                KikaoLecturerHeader(
+                    title = screenTitle,
+                    subtitle = screenSubtitle,
+                    lecturerName = lecturerName,
+                    onBackClick = onBackClick,
+                    onNotificationClick = onNotificationClick,
+                    onProfileClick = onProfileClick
+                )
+            },
+            bottomBar = {
+                if (showBottomBar) {
+                    KikaoLecturerBottomBar(
+                        selectedTab = selectedTab,
+                        onTabSelected = onTabSelected
+                    )
+                }
+            }
+        ) { innerPadding ->
             content(innerPadding)
         }
     }
@@ -95,15 +103,8 @@ private fun KikaoLecturerHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        KikaoColors.DeepIndigo,
-                        KikaoColors.Indigo,
-                        Color(0xFF31539A)
-                    )
-                )
-            )
+            .background(Color.Transparent)
+            .statusBarsPadding()
             .padding(horizontal = 22.dp, vertical = 18.dp)
     ) {
         Canvas(modifier = Modifier.matchParentSize()) {
@@ -152,7 +153,7 @@ private fun KikaoLecturerHeader(
 
                         Text(
                             text = "LECTURER PORTAL",
-                            color = KikaoColors.White.copy(alpha = 0.70f),
+                            color = KikaoColors.White.copy(alpha = 0.85f),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -207,7 +208,7 @@ private fun KikaoLecturerHeader(
 
             Text(
                 text = subtitle,
-                color = KikaoColors.White.copy(alpha = 0.76f),
+                color = KikaoColors.White.copy(alpha = 0.95f),
                 fontSize = 12.sp
             )
 
@@ -228,8 +229,9 @@ private fun KikaoLecturerBottomBar(
     onTabSelected: (LecturerTab) -> Unit
 ) {
     NavigationBar(
-        containerColor = KikaoColors.White,
-        tonalElevation = 6.dp
+        containerColor = Color.White.copy(alpha = 0.08f),
+        tonalElevation = 0.dp,
+        modifier = Modifier.navigationBarsPadding()
     ) {
         LecturerTab.entries.forEach { tab ->
             NavigationBarItem(
@@ -250,11 +252,11 @@ private fun KikaoLecturerBottomBar(
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = KikaoColors.Teal,
-                    selectedTextColor = KikaoColors.Teal,
-                    indicatorColor = KikaoColors.TealLight,
-                    unselectedIconColor = KikaoColors.MutedText,
-                    unselectedTextColor = KikaoColors.MutedText
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.White,
+                    indicatorColor = KikaoColors.Teal,
+                    unselectedIconColor = Color.White.copy(alpha = 0.5f),
+                    unselectedTextColor = Color.White.copy(alpha = 0.5f)
                 )
             )
         }
@@ -263,14 +265,14 @@ private fun KikaoLecturerBottomBar(
 
 private fun DrawScope.drawKikaoBackground() {
     drawCircle(
-        color = KikaoColors.Teal.copy(alpha = 0.07f),
-        radius = size.width * 0.48f,
-        center = Offset(size.width * 1.08f, size.height * 0.30f)
+        color = KikaoColors.Teal.copy(alpha = 0.22f),
+        radius = size.width * 0.55f,
+        center = Offset(size.width * 1.05f, size.height * 0.12f)
     )
 
     drawCircle(
-        color = KikaoColors.Gold.copy(alpha = 0.06f),
-        radius = size.width * 0.45f,
-        center = Offset(size.width * -0.15f, size.height * 0.82f)
+        color = KikaoColors.Gold.copy(alpha = 0.14f),
+        radius = size.width * 0.48f,
+        center = Offset(size.width * -0.12f, size.height * 0.90f)
     )
 }

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,28 +18,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mwema.a2kikao.data.CourseClass
 import com.mwema.a2kikao.ui.theme.KikaoColors
-
-private data class TimetableEvent(
-    val day: String,
-    val time: String,
-    val course: String,
-    val room: String,
-    val type: String // "Lecture", "Lab", "Office"
-)
+import com.mwema.a2kikao.ui.viewmodels.LecturerTimetableViewModel
 
 @Composable
 fun LecturerTimetableScreen(
     modifier: Modifier = Modifier,
+    viewModel: LecturerTimetableViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit = {},
+    onStartAttendance: (CourseClass) -> Unit = {},
     onTabSelected: (LecturerTab) -> Unit = {}
 ) {
-    val schedule = listOf(
-        TimetableEvent("Monday", "10:00 - 12:00", "CSC 221: Database Systems", "Lab 3", "Lab"),
-        TimetableEvent("Monday", "14:00 - 15:30", "Office Hours", "Office B12", "Office"),
-        TimetableEvent("Tuesday", "08:00 - 10:00", "MAT 204: Discrete Math", "LH 2", "Lecture"),
-        TimetableEvent("Wednesday", "11:00 - 13:00", "CSC 210: Data Structures", "Room B04", "Lecture")
-    )
+    val schedule by viewModel.schedule.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     KikaoLecturerScaffold(
         modifier = modifier,
@@ -47,42 +40,51 @@ fun LecturerTimetableScreen(
         screenSubtitle = "Your weekly academic commitments",
         onTabSelected = onTabSelected
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 32.dp)
-        ) {
-            
-            TextButton(onClick = onBack, modifier = Modifier.padding(horizontal = 8.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp), tint = KikaoColors.Teal)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Back to sessions", color = KikaoColors.Teal, fontWeight = FontWeight.Bold)
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = KikaoColors.Teal)
             }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp)
+            ) {
+                
+                TextButton(onClick = onBack, modifier = Modifier.padding(horizontal = 8.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White.copy(alpha = 0.90f))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Back to sessions", color = Color.White.copy(alpha = 0.90f), fontWeight = FontWeight.Bold)
+                }
 
-            // Simple Day-based view
-            listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday").forEach { day ->
-                DaySection(
-                    day = day,
-                    events = schedule.filter { it.day == day }
-                )
+                val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+                days.forEach { day ->
+                    DaySection(
+                        day = day,
+                        classes = schedule
+                            .filter { it.day.equals(day, ignoreCase = true) || it.days.any { d -> d.equals(day, ignoreCase = true) } }
+                            .sortedBy { it.time.substringBefore("-").trim() },
+                        onStartAttendance = onStartAttendance
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DaySection(day: String, events: List<TimetableEvent>) {
+private fun DaySection(day: String, classes: List<CourseClass>, onStartAttendance: (CourseClass) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(text = day.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = KikaoColors.MutedText, letterSpacing = 1.sp)
+        Text(text = day.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color.White.copy(alpha = 0.90f), letterSpacing = 1.sp)
         Spacer(modifier = Modifier.height(8.dp))
         
-        if (events.isEmpty()) {
-            Text("No classes scheduled", color = Color.LightGray, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
+        if (classes.isEmpty()) {
+            Text("No classes scheduled", color = Color.White.copy(alpha = 0.65f), fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
         } else {
-            events.forEach { event ->
-                EventCard(event)
+            classes.forEach { course ->
+                ClassScheduleCard(course, onStartAttendance)
                 Spacer(modifier = Modifier.height(10.dp))
             }
         }
@@ -90,10 +92,10 @@ private fun DaySection(day: String, events: List<TimetableEvent>) {
 }
 
 @Composable
-private fun EventCard(event: TimetableEvent) {
-    val accent = when(event.type) {
-        "Lab" -> KikaoColors.Teal
-        "Office" -> KikaoColors.Gold
+private fun ClassScheduleCard(course: CourseClass, onStartAttendance: (CourseClass) -> Unit) {
+    val accent = when(course.code.take(3)) {
+        "CSC" -> KikaoColors.Teal
+        "MAT" -> Color(0xFF8B5CF6)
         else -> KikaoColors.Indigo
     }
 
@@ -102,15 +104,26 @@ private fun EventCard(event: TimetableEvent) {
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(4.dp)).background(accent))
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = event.course, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = KikaoColors.Ink)
-                Text(text = "${event.time} · ${event.room}", fontSize = 12.sp, color = KikaoColors.MutedText)
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(4.dp)).background(accent))
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "${course.code}: ${course.name}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = KikaoColors.Ink)
+                    Text(text = "${course.time} · ${course.room}", fontSize = 12.sp, color = KikaoColors.MutedText)
+                }
             }
-            Badge(containerColor = accent.copy(alpha = 0.1f), contentColor = accent) {
-                Text(event.type, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Button(
+                onClick = { onStartAttendance(course) },
+                modifier = Modifier.fillMaxWidth().height(38.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = KikaoColors.Indigo.copy(alpha = 0.08f), contentColor = KikaoColors.Indigo),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text("Start Live Session", fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
